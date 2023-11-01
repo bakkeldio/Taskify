@@ -6,15 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.statusBars
-import nau.android.taskify.ui.TaskDetails
+import nau.android.taskify.ui.task.TaskDetails
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material.*
@@ -50,9 +44,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import nau.android.taskify.ui.MainDestination
-import nau.android.taskify.ui.ListOfTasks
-import nau.android.taskify.ui.Task
-import nau.android.taskify.ui.TaskItemDesign
+import nau.android.taskify.ui.tasksList.ListOfTasks
+import nau.android.taskify.ui.task.Task
+import nau.android.taskify.ui.task.TaskItemDesign
 import nau.android.taskify.ui.theme.TaskifyTheme
 
 class MainActivity : ComponentActivity() {
