@@ -1,4 +1,4 @@
-package nau.android.taskify.ui
+package nau.android.taskify.ui.task
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
@@ -23,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import nau.android.taskify.ui.category.Category
 
 
 class Task(

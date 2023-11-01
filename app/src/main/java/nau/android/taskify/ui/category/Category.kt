@@ -1,4 +1,4 @@
-package nau.android.taskify.ui
+package nau.android.taskify.ui.category
 
 class Category(
     val uid: String,

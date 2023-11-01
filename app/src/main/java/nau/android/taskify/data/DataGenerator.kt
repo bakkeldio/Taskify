@@ -1,8 +1,8 @@
 package nau.android.taskify.data
 
-import nau.android.taskify.ui.Category
-import nau.android.taskify.ui.Task
-import nau.android.taskify.ui.TaskPriority
+import nau.android.taskify.ui.category.Category
+import nau.android.taskify.ui.task.Task
+import nau.android.taskify.ui.task.TaskPriority
 
 
 fun generateTasks(): List<Task> {

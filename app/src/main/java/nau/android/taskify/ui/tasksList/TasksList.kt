@@ -1,4 +1,4 @@
-package nau.android.taskify.ui
+package nau.android.taskify.ui.tasksList
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +26,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +41,8 @@ import nau.android.taskify.R
 import nau.android.taskify.TaskItem
 import nau.android.taskify.data.FakeTasksData
 import nau.android.taskify.data.generateTasks
+import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.task.Task
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,7 +189,7 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
 }
 
 @Composable
-fun GroupTasks(
+private fun GroupTasks(
     fakeTasksData: FakeTasksData,
     groupingType: GroupingType,
     sortingType: SortingType,
@@ -227,7 +228,7 @@ fun GroupTasks(
 
         GroupingType.Category -> {
             sortedMap.entries.sortedBy {
-                (it.key as HeaderType.Category).categoryName
+                it.key.title
             }.associate {
                 it.toPair()
             }
@@ -252,7 +253,7 @@ fun GroupTasks(
 }
 
 @Composable
-fun BuildList(
+private fun BuildList(
     list: Map<HeaderType, List<Task>>, showDetails: Boolean, navigateToTaskDetails: (String) -> Unit
 ) {
 
@@ -282,11 +283,3 @@ fun BuildList(
 
     }
 }
-
-sealed class HeaderType(val title: String) {
-    class Priority(name: String, val priorityNumber: Int) : HeaderType(name)
-    class Date(name: String, val date: String) : HeaderType(name)
-    class Category(val categoryName: String) : HeaderType(categoryName)
-    object NoHeader : HeaderType("")
-}
-

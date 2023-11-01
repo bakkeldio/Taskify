@@ -1,6 +1,5 @@
-package nau.android.taskify.ui
+package nau.android.taskify.ui.task
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,13 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -31,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,31 +38,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
-import nau.android.taskify.R
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import nau.android.taskify.data.DateInfo
-import nau.android.taskify.data.RepeatIntervalType
-import nau.android.taskify.data.TaskifyDatePickerDialog
-import nau.android.taskify.data.formatToAmPmTime
+import nau.android.taskify.R
+import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.category.Category
+import nau.android.taskify.ui.category.ChangeCategoryBottomSheet
+import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
+import nau.android.taskify.ui.dialogs.formatToAmPmTime
+import nau.android.taskify.ui.enums.RepeatIntervalType
+import nau.android.taskify.ui.extensions.getDateDifferenceInDays
 import java.text.SimpleDateFormat
-import java.time.Year
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
-import kotlin.math.abs
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -191,8 +182,7 @@ fun TaskDetails(navController: NavController) {
         if (showDatePickerDialog.value) {
             TaskifyDatePickerDialog(onDismiss = {
                 showDatePickerDialog.value = false
-            }, { dateInfo ->
-
+            }, onDateChanged = { dateInfo ->
                 taskDateInfo = dateInfo
                 showDatePickerDialog.value = false
                 selectedTime = dateInfo.time?.let {
@@ -289,58 +279,8 @@ fun TaskDetails(navController: NavController) {
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskifyTimePickerDialog(
-    initialMinute: Int,
-    initialHour: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Triple<Int, Int, Boolean>) -> Unit
-) {
-    val timePickerState =
-        rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
-
-    AlertDialog(
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        onDismissRequest = {
-
-        }, modifier = Modifier
-            .fillMaxWidth(0.75f)
-            .background(
-                color = MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(5.dp)
-            )
-    ) {
-
-        Column(Modifier.padding(20.dp)) {
-            TimeInput(
-                state = timePickerState,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                TextButton(onClick = {
-                    onDismiss()
-                }) {
-                    Text(text = "Cancel", fontSize = 16.sp)
-                }
-                TextButton(onClick = {
-                    onConfirm(Triple(timePickerState.hour, timePickerState.minute, true))
-                }) {
-                    Text(text = "Done", fontSize = 16.sp)
-                }
-
-            }
-        }
-    }
-}
-
-@Composable
-fun BoxScope.DropDownMenuForCategories(
+private fun BoxScope.DropDownMenuForCategories(
     taskPriority: TaskPriority, changeTaskPriority: (TaskPriority) -> Unit
 ) {
     var dropDownMenuOpen by remember {
@@ -383,7 +323,7 @@ fun BoxScope.DropDownMenuForCategories(
 }
 
 @Composable
-fun applyColorForDateTime(selectedDate: Calendar, date: String): AnnotatedString {
+private fun applyColorForDateTime(selectedDate: Calendar, date: String): AnnotatedString {
     val currentDate = Calendar.getInstance()
     return buildAnnotatedString {
         withStyle(
@@ -398,7 +338,7 @@ fun applyColorForDateTime(selectedDate: Calendar, date: String): AnnotatedString
     }
 }
 
-fun getFormattedDate(date: Calendar, time: String): String {
+private fun getFormattedDate(date: Calendar, time: String): String {
     val currentCalendar = Calendar.getInstance()
 
     val monthFormatter = SimpleDateFormat("MMM dd", Locale.getDefault())
@@ -418,21 +358,12 @@ fun getFormattedDate(date: Calendar, time: String): String {
         } else {
             val d = monthFormatter.format(date.time) + if (time.isNotEmpty()) ", $time" else time
             if (currentCalendar.after(date)) {
-                d + ", ${getDifference(currentCalendar.time, date.time)}d overdue"
+                d + ", ${Pair(currentCalendar.time, date.time).getDateDifferenceInDays()}d overdue"
             } else {
-                d + ", ${getDifference(currentCalendar.time, date.time)}d left"
+                d + ", ${Pair(currentCalendar.time, date.time).getDateDifferenceInDays()}d left"
             }
         }
     }
-}
-
-private fun getDifference(date1: Date, date2: Date): Long {
-    val time1 = date1.time
-    val time2 = date2.time
-
-    val duration = abs(time1 - time2)
-
-    return TimeUnit.MILLISECONDS.toDays(duration)
 }
 
 

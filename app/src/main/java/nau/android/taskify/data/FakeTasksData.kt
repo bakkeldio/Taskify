@@ -1,9 +1,9 @@
 package nau.android.taskify.data
 
-import nau.android.taskify.ui.GroupingType
-import nau.android.taskify.ui.HeaderType
-import nau.android.taskify.ui.SortingType
-import nau.android.taskify.ui.Task
+import nau.android.taskify.ui.tasksList.GroupingType
+import nau.android.taskify.ui.tasksList.HeaderType
+import nau.android.taskify.ui.tasksList.SortingType
+import nau.android.taskify.ui.task.Task
 
 
 class FakeTasksData(private var listOfTasks: List<Task>) {

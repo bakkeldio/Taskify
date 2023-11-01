@@ -1,9 +1,7 @@
-package nau.android.taskify.data
+package nau.android.taskify.ui.dialogs
 
-import android.app.TaskInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,13 +20,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
@@ -41,8 +37,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,105 +47,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import java.text.SimpleDateFormat
 import nau.android.taskify.R
-import nau.android.taskify.ui.TaskifyTimePickerDialog
+import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.enums.OptionalDate
+import nau.android.taskify.ui.enums.ReminderType
+import nau.android.taskify.ui.enums.RepeatIntervalType
+import nau.android.taskify.ui.extensions.isSameDay
 import java.util.Calendar
 import java.util.Locale
-
-@Composable
-fun TaskifySearchBar(modifier: Modifier, value: String = "", onValueChange: (String) -> Unit) {
-    TextField(
-        value = value,
-        onValueChange = {
-            onValueChange(it)
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search, contentDescription = null
-            )
-        },
-        placeholder = { Text(text = "Search") },
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 13.dp),
-        shape = RoundedCornerShape(10.dp),
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent
-        ),
-        maxLines = 1
-
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SmallerSearchBar(modifier: Modifier, value: String = "", onValueChange: (String) -> Unit) {
-
-    BasicTextField(modifier = modifier
-        .fillMaxWidth()
-        .height(45.dp),
-        value = value,
-        onValueChange = {
-            onValueChange(it)
-        },
-        singleLine = true,
-        decorationBox = { innerTextField ->
-            TextFieldDefaults.DecorationBox(
-                value = value,
-                innerTextField = {
-                    Box(
-                        modifier = Modifier.fillMaxHeight(),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        innerTextField()
-                    }
-                },
-                singleLine = true,
-                placeholder = {
-                    Text(text = "Search")
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search, contentDescription = null
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    errorIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(
-                    top = 0.dp,
-                    bottom = 0.dp,
-                ),
-                visualTransformation = VisualTransformation.None,
-                interactionSource = MutableInteractionSource(),
-                enabled = true,
-                shape = RoundedCornerShape(10.dp)
-            )
-        })
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskifyDatePickerDialog(
     onDismiss: () -> Unit,
-    onConfirmDateInfo: (DateInfo) -> Unit
+    onDateChanged: (DateInfo) -> Unit
 ) {
     var selectedDate by remember {
         mutableStateOf(Calendar.getInstance())
     }
-    var openTimePickerDialog by remember {
+    var openTimePickerContent by remember {
         mutableStateOf(false)
     }
 
@@ -159,8 +78,8 @@ fun TaskifyDatePickerDialog(
         mutableStateOf(emptySet<ReminderType>())
     }
 
-    var dialogTypes by remember {
-        mutableStateOf(DialogType.DatePickerDialog)
+    var contentTypes by remember {
+        mutableStateOf(ContentTypeForDialog.DatePickerContent)
     }
 
     var selectedRepeatIntervalType by remember {
@@ -175,14 +94,14 @@ fun TaskifyDatePickerDialog(
         )
     }
 
-    if (openTimePickerDialog) {
+    if (openTimePickerContent) {
         TaskifyTimePickerDialog(onDismiss = {
-            openTimePickerDialog = false
+            openTimePickerContent = false
         },
             initialMinute = time.second,
             initialHour = time.first,
             onConfirm = { hourMinute ->
-                openTimePickerDialog = false
+                openTimePickerContent = false
 
                 time = hourMinute
             })
@@ -191,9 +110,9 @@ fun TaskifyDatePickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss, content = {
 
-            when (dialogTypes) {
-                DialogType.DatePickerDialog -> {
-                    DatePicker(selectedDate,
+            when (contentTypes) {
+                ContentTypeForDialog.DatePickerContent -> {
+                    MainDatePickerContent(selectedDate,
                         time,
                         selectedReminders,
                         selectedRepeatIntervalType,
@@ -202,7 +121,7 @@ fun TaskifyDatePickerDialog(
                         },
                         onDismiss,
                         onConfirmDate = { date ->
-                            onConfirmDateInfo(
+                            onDateChanged(
                                 DateInfo(
                                     date,
                                     Pair(time.first, time.second),
@@ -212,17 +131,17 @@ fun TaskifyDatePickerDialog(
                             )
                         },
                         openTimePicker = {
-                            openTimePickerDialog = true
+                            openTimePickerContent = true
                         },
                         openReminder = {
-                            dialogTypes = DialogType.ReminderDialog
+                            contentTypes = ContentTypeForDialog.ReminderContent
                         }, openRepeatIntervalScreen = {
-                            dialogTypes = DialogType.RepeatIntervalDialog
+                            contentTypes = ContentTypeForDialog.RepeatIntervalContent
                         })
                 }
 
-                DialogType.ReminderDialog -> {
-                    RemainderSelection(selectedReminders = selectedReminders, clearReminders = {
+                ContentTypeForDialog.ReminderContent -> {
+                    RemainderContent(selectedReminders = selectedReminders, clearReminders = {
                         selectedReminders = selectedReminders.toMutableSet().apply {
                             clear()
                         }
@@ -236,18 +155,18 @@ fun TaskifyDatePickerDialog(
                             remove(it)
                         }
                     }) {
-                        dialogTypes = DialogType.DatePickerDialog
+                        contentTypes = ContentTypeForDialog.DatePickerContent
                     }
                 }
 
-                DialogType.RepeatIntervalDialog -> {
-                    RepeatScreen(
+                ContentTypeForDialog.RepeatIntervalContent -> {
+                    RepeatIntervalContent(
                         selectedRepeatInterval = selectedRepeatIntervalType,
                         selectRepeatInterval = { newRepeatInterval ->
                             selectedRepeatIntervalType = newRepeatInterval
-                            dialogTypes = DialogType.DatePickerDialog
+                            contentTypes = ContentTypeForDialog.DatePickerContent
                         }) {
-                        dialogTypes = DialogType.DatePickerDialog
+                        contentTypes = ContentTypeForDialog.DatePickerContent
                     }
                 }
             }
@@ -262,27 +181,8 @@ fun TaskifyDatePickerDialog(
 
 }
 
-enum class ReminderType(val title: String) {
-    OnTime("On time"), FiveMinutesBefore("5 minutes before"), TenMinutesBefore("10 minutes before"), FifteenMinutesBefore(
-        "15 minutes before"
-    ),
-    ThirtyMinutesBefore("30 minutes before"), DayBefore("1 day before"), TwoDaysBefore("2 days before"), Customize(
-        "Customize"
-    );
-}
-
-enum class RepeatIntervalType(val title: String) {
-    Daily("Daily"),
-    EveryWeekDay("Every weekday"),
-    Weekly("Weekly"),
-    Monthly("Monthly"),
-    Yearly("Yearly"),
-    Custom("Custom"),
-    None("None");
-}
-
 @Composable
-private fun DatePicker(
+private fun MainDatePickerContent(
     selectedDate: Calendar,
     time: Triple<Int, Int, Boolean>,
     selectedRemainders: Set<ReminderType>,
@@ -462,7 +362,7 @@ private fun DatePicker(
 }
 
 @Composable
-private fun RepeatScreen(
+private fun RepeatIntervalContent(
     selectedRepeatInterval: RepeatIntervalType,
     selectRepeatInterval: (RepeatIntervalType) -> Unit,
     onDismiss: () -> Unit
@@ -500,7 +400,7 @@ private fun RepeatScreen(
 }
 
 @Composable
-private fun RemainderSelection(
+private fun RemainderContent(
     selectedReminders: Set<ReminderType>,
     addReminder: (ReminderType) -> Unit,
     removeReminder: (ReminderType) -> Unit,
@@ -599,56 +499,6 @@ private fun OptionalDateSelection(
 
 }
 
-private enum class OptionalDate(val title: String? = null) {
-    Today("Today"), Tomorrow("Tomorrow"), ThreeDaysLater("Three days later"), NoSelection;
-
-    companion object {
-        fun getDate(optionalDate: OptionalDate): Calendar? {
-            val calendar = Calendar.getInstance().clone() as Calendar
-            return when (optionalDate) {
-                Today -> calendar
-                Tomorrow -> {
-                    calendar.add(Calendar.DAY_OF_MONTH, 1)
-                    calendar
-                }
-
-                ThreeDaysLater -> {
-                    calendar.add(Calendar.DAY_OF_MONTH, 3)
-                    calendar
-                }
-
-                NoSelection -> null
-            }
-        }
-
-        fun fromCalendar(calendar: Calendar): OptionalDate {
-            val today = Calendar.getInstance()
-            val tomorrow = Calendar.getInstance()
-            tomorrow.add(Calendar.DAY_OF_MONTH, 1)
-            val threeDaysLater = Calendar.getInstance()
-            threeDaysLater.add(Calendar.DAY_OF_MONTH, 3)
-            val weekLater = Calendar.getInstance()
-            weekLater.add(Calendar.DAY_OF_MONTH, 7)
-
-            return when {
-                isSameDay(calendar, today) -> Today
-                isSameDay(calendar, tomorrow) -> Tomorrow
-                isSameDay(calendar, threeDaysLater) -> ThreeDaysLater
-                else -> NoSelection
-            }
-        }
-
-        private fun isSameDay(calendar1: Calendar, calendar2: Calendar): Boolean {
-            return calendar1.get(Calendar.YEAR) == calendar2.get(Calendar.YEAR) && calendar1.get(
-                Calendar.MONTH
-            ) == calendar2.get(Calendar.MONTH) && calendar1.get(Calendar.DAY_OF_MONTH) == calendar2.get(
-                Calendar.DAY_OF_MONTH
-            )
-        }
-
-    }
-}
-
 @Composable
 private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> Unit) {
     val dateFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
@@ -736,7 +586,7 @@ private fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> U
             val currentDate = selectedDate.clone() as Calendar
             currentDate.set(Calendar.DAY_OF_MONTH, day)
 
-            val isSelected = isSameDay(selectedDate, currentDate)
+            val isSelected = Pair(selectedDate, currentDate).isSameDay()
             if (isCurrentMonth(currentDate)) {
                 DayCell(date = currentDate, isSelected = isSelected, onDateSelected = {
                     onDateSelected(it)
@@ -757,7 +607,7 @@ fun formatToAmPmTime(hour: Int, minute: Int): String {
 
 
 @Composable
-fun DayCell(
+private fun DayCell(
     date: Calendar, isSelected: Boolean, onDateSelected: (Calendar) -> Unit
 ) {
     Box(
@@ -783,22 +633,8 @@ fun DayCell(
     }
 }
 
-
-private fun isSameDay(date1: Calendar, date2: Calendar): Boolean {
-    return date1.get(Calendar.YEAR) == date2.get(Calendar.YEAR) && date1.get(Calendar.MONTH) == date2.get(
-        Calendar.MONTH
-    ) && date1.get(Calendar.DAY_OF_MONTH) == date2.get(Calendar.DAY_OF_MONTH)
+private enum class ContentTypeForDialog {
+    DatePickerContent,
+    ReminderContent,
+    RepeatIntervalContent
 }
-
-private enum class DialogType {
-    DatePickerDialog,
-    ReminderDialog,
-    RepeatIntervalDialog
-}
-
-data class DateInfo(
-    val date: Calendar? = null,
-    val time: Pair<Int, Int>? = null,
-    val repeatInterval: RepeatIntervalType = RepeatIntervalType.None,
-    val reminderTypes: Set<ReminderType> = emptySet()
-)
