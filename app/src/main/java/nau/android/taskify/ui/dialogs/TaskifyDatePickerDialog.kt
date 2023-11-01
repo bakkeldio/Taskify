@@ -137,6 +137,8 @@ fun TaskifyDatePickerDialog(
                             contentTypes = ContentTypeForDialog.ReminderContent
                         }, openRepeatIntervalScreen = {
                             contentTypes = ContentTypeForDialog.RepeatIntervalContent
+                        }, clearDate = {
+                            onDateChanged(DateInfo())
                         })
                 }
 
@@ -192,7 +194,8 @@ private fun MainDatePickerContent(
     onConfirmDate: (Calendar) -> Unit,
     openTimePicker: () -> Unit,
     openReminder: () -> Unit,
-    openRepeatIntervalScreen: () -> Unit
+    openRepeatIntervalScreen: () -> Unit,
+    clearDate: () -> Unit
 ) {
     Column {
         Box(
@@ -203,7 +206,12 @@ private fun MainDatePickerContent(
             TextButton(onClick = {
 
             }, modifier = Modifier.align(Alignment.CenterStart)) {
-                Text(text = "Clear", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Clear",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.clickable {
+                        clearDate()
+                    })
             }
             Text(
                 text = "Date & Time",
@@ -216,7 +224,7 @@ private fun MainDatePickerContent(
         })
         CalendarGrid(selectedDate, onDateSelected)
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Column() {
 
             OptionalDateSelection(
                 OptionalDate.fromCalendar(selectedDate),
