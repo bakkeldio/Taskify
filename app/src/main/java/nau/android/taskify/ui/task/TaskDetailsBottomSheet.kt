@@ -28,8 +28,7 @@ fun TaskDetailsBottomSheet(
     onDismissRequest: () -> Unit = {},
     deleteTask: () -> Unit = {},
     openAttachment: () -> Unit = {},
-    share: () -> Unit = {},
-    cancel: () -> Unit
+    share: () -> Unit = {}
 ) {
 
     ModalBottomSheet(
@@ -78,7 +77,7 @@ fun TaskDetailsBottomSheet(
         }
         TextButton(
             onClick = {
-                cancel()
+                onDismissRequest()
             },
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)

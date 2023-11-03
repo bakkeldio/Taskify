@@ -55,6 +55,8 @@ fun generateCategories(): List<Category> {
         Category("uid5", "Sport"),
         Category("uid4", "Friends"),
         Category("uid3", "Family"),
-        Category("uid1", "Work")
+        Category("uid1", "Work"),
+        Category("uid5", "Vacation"),
+        Category("uid6", "Hobby")
     )
 }

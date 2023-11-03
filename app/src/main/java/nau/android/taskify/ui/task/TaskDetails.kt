@@ -15,17 +15,12 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -36,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -44,12 +38,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import nau.android.taskify.R
 import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.category.Category
 import nau.android.taskify.ui.category.ChangeCategoryBottomSheet
+import nau.android.taskify.ui.customElements.TaskifyPrioritySelectionDropdownMenu
+import nau.android.taskify.ui.customElements.TaskifyTextField
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.dialogs.formatToAmPmTime
 import nau.android.taskify.ui.enums.RepeatIntervalType
@@ -151,14 +145,7 @@ fun TaskDetails(navController: NavController) {
             ChangeCategoryBottomSheet(
                 currentCategoryId = taskCategory.uid, onCategoryChanged = { newCategory ->
                     taskCategory = newCategory
-                    scope.launch {
-                        delay(300)
-                        categorySheetState.hide()
-                    }.invokeOnCompletion {
-                        if (!categorySheetState.isVisible) {
-                            showCategoryBottomSheet = false
-                        }
-                    }
+                    showCategoryBottomSheet = false
                 }, categorySheetState
             ) {
                 showCategoryBottomSheet = false
@@ -168,15 +155,7 @@ fun TaskDetails(navController: NavController) {
         if (showTaskDetailBottomSheet) {
             TaskDetailsBottomSheet(onDismissRequest = {
                 showTaskDetailBottomSheet = false
-            }, modalBottomSheetState = taskDetailSheetState) {
-                scope.launch {
-                    taskDetailSheetState.hide()
-                }.invokeOnCompletion {
-                    if (!taskDetailSheetState.isVisible) {
-                        showTaskDetailBottomSheet = false
-                    }
-                }
-            }
+            }, modalBottomSheetState = taskDetailSheetState)
         }
 
         if (showDatePickerDialog.value) {
@@ -243,36 +222,19 @@ fun TaskDetails(navController: NavController) {
                     taskPriority = newPriority
                 }
             }
-            TextField(value = taskTitle, onValueChange = { newValue ->
-                taskTitle = newValue
-            }, placeholder = {
-                Text(text = "What would you like to do?")
-            }, colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                errorIndicatorColor = Color.Transparent,
-                disabledIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                errorContainerColor = Color.Transparent
-            ), maxLines = 2
-            )
-            TextField(
-                value = taskDescription, onValueChange = { newDescription ->
-                    taskDescription = newDescription
-                }, modifier = Modifier.padding(top = 5.dp), colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    errorIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    errorContainerColor = Color.Transparent
-                )
-            )
 
+            TaskifyTextField(
+                value = taskTitle,
+                placeHolder = "What would you like to do?",
+                onValueChange = { newTitle ->
+                    taskTitle = newTitle
+                })
+            TaskifyTextField(
+                Modifier.padding(top = 5.dp),
+                value = taskDescription,
+                onValueChange = { newDescription ->
+                    taskDescription = newDescription
+                })
 
         }
     }
@@ -296,29 +258,16 @@ private fun BoxScope.DropDownMenuForCategories(
                 tint = taskPriority.color
             )
         }
-        DropdownMenu(expanded = dropDownMenuOpen, onDismissRequest = {
-            dropDownMenuOpen = false
-        }) {
-            TaskPriority.values().forEach { priority ->
-                DropdownMenuItem(text = {
-                    Text(text = "${priority.name} priority")
-                }, onClick = {
 
-
-                }, trailingIcon = {
-                    RadioButton(selected = taskPriority == priority, onClick = {
-                        changeTaskPriority(priority)
-                        dropDownMenuOpen = false
-                    })
-                }, leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_flag),
-                        contentDescription = "Priority",
-                        tint = priority.color
-                    )
-                })
-            }
-        }
+        TaskifyPrioritySelectionDropdownMenu(
+            taskPriority = taskPriority,
+            dropDownMenuOpen = dropDownMenuOpen,
+            changeTaskPriority = { newPriority ->
+                changeTaskPriority(newPriority)
+                dropDownMenuOpen = false
+            }, closeDropDown = {
+                dropDownMenuOpen = false
+            })
     }
 }
 

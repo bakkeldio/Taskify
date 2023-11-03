@@ -133,8 +133,10 @@ fun showBottomNavigationInMainDestinations(destination: NavDestination): Boolean
 }
 
 @Composable
-fun FloatingActionButton() {
-    FloatingActionButton(onClick = {}) {
+fun FloatingActionButton(onClick: () -> Unit) {
+    FloatingActionButton(onClick = {
+        onClick()
+    }) {
         Icon(imageVector = Icons.Filled.Add, contentDescription = "Floating action button")
     }
 }

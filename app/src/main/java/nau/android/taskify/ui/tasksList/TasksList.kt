@@ -30,18 +30,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
 import nau.android.taskify.TaskItem
 import nau.android.taskify.data.FakeTasksData
 import nau.android.taskify.data.generateTasks
 import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.task.Task
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,6 +63,10 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
         mutableStateOf(false)
     }
 
+    val createTaskBottomSheet = remember {
+        mutableStateOf(false)
+    }
+
     var showBottomSheet by remember {
         mutableStateOf(false)
     }
@@ -71,6 +78,11 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
     var sortingType by remember {
         mutableStateOf(SortingType.Title)
     }
+
+    var showDatePickerDialog by remember {
+        mutableStateOf(false)
+    }
+
 
     val fakeTasksData = FakeTasksData(generateTasks())
 
@@ -87,6 +99,7 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
             showBottomSheet = false
         }
     }
+
 
     Scaffold(
         topBar = {
@@ -151,9 +164,32 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        floatingActionButton = { FloatingActionButton() },
+        floatingActionButton = {
+            FloatingActionButton {
+                createTaskBottomSheet.value = true
+            }
+        },
         contentWindowInsets = WindowInsets(bottom = 0)
     ) { innerPaddings ->
+
+        if (showDatePickerDialog) {
+            TaskifyDatePickerDialog(onDismiss = {
+                showDatePickerDialog = false
+                createTaskBottomSheet.value = true
+            }, onDateChanged = { dateInfo ->
+                showDatePickerDialog = false
+                createTaskBottomSheet.value = true
+            })
+        }
+        if (createTaskBottomSheet.value) {
+            CreateTaskBottomSheet(onDismissBottomSheet = {
+                createTaskBottomSheet.value = false
+            }, openDatePickerDialog = {
+                showDatePickerDialog = true
+                createTaskBottomSheet.value = false
+            })
+        }
+
         Column(modifier = Modifier.padding(innerPaddings)) {
             TextField(
                 value = "",
