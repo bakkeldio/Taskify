@@ -2,84 +2,58 @@ package nau.android.taskify.ui.tasksList
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.exclude
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.union
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.android.awaitFrame
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import nau.android.taskify.R
-import nau.android.taskify.data.generateCategories
-import nau.android.taskify.ui.category.Category
+import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.customElements.TaskifyCategorySelectionDropDownMenu
 import nau.android.taskify.ui.customElements.TaskifyCreateTaskButton
 import nau.android.taskify.ui.customElements.TaskifyPrioritySelectionDropdownMenu
 import nau.android.taskify.ui.customElements.TaskifyTextField
-import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
-import nau.android.taskify.ui.task.TaskPriority
+import nau.android.taskify.ui.extensions.formatTaskifyDate
+import nau.android.taskify.ui.extensions.formatToAmPm
+import nau.android.taskify.ui.model.Category
+import nau.android.taskify.ui.model.Task
+import java.util.Calendar
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class
+)
 @Composable
-fun CreateTaskBottomSheet(onDismissBottomSheet: () -> Unit, openDatePickerDialog: () -> Unit) {
-
-    val taskTitle = remember {
-        mutableStateOf("")
-    }
-
-    val taskPriority = remember {
-        mutableStateOf(TaskPriority.NoPriority)
-    }
+fun CreateTaskBottomSheet(
+    dateInfo: DateInfo,
+    task: Task,
+    onDismissBottomSheet: () -> Unit,
+    openDatePickerDialog: (Task, DateInfo) -> Unit,
+    createTask: (Task) -> Unit
+) {
 
     val priorityDropDownOpen = remember {
         mutableStateOf(false)
@@ -93,9 +67,26 @@ fun CreateTaskBottomSheet(onDismissBottomSheet: () -> Unit, openDatePickerDialog
         FocusRequester()
     }
 
-    val category = remember {
-        mutableStateOf(Category("uid", "No category"))
+    val taskTitle = remember {
+        mutableStateOf(task.name)
     }
+
+    val taskPriority = remember {
+        mutableStateOf(task.priority)
+    }
+
+    val taskRepeatInterval = remember {
+        task.repeatInterval
+    }
+
+    val reminders = remember {
+        mutableStateOf(task.reminders)
+    }
+
+    val currentCategory = remember {
+        mutableStateOf<Category?>(null)
+    }
+
 
     LaunchedEffect(focusRequester) {
         awaitFrame()
@@ -115,17 +106,15 @@ fun CreateTaskBottomSheet(onDismissBottomSheet: () -> Unit, openDatePickerDialog
         showRadioButtons = false
     )
 
-    TaskifyCategorySelectionDropDownMenu(
-        categories = generateCategories(),
-        dropDownMenuOpen = categoryDropDownOpen.value,
+
+    TaskifyCategorySelectionDropDownMenu(dropDownMenuOpen = categoryDropDownOpen.value,
         onDismissRequest = {
             categoryDropDownOpen.value = false
         },
         onChangeCategory = {
-            category.value = it
+            currentCategory.value = it
             categoryDropDownOpen.value = false
-        }
-    )
+        })
 
     ModalBottomSheet(
         onDismissRequest = {
@@ -155,43 +144,78 @@ fun CreateTaskBottomSheet(onDismissBottomSheet: () -> Unit, openDatePickerDialog
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
 
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_date),
-                    contentDescription = "Choosing date",
-                    modifier = Modifier.clickable {
-                        openDatePickerDialog()
-                    }, tint = MaterialTheme.colorScheme.primary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_date),
+                        contentDescription = "Choosing date",
+                        modifier = Modifier.clickable {
+                            openDatePickerDialog(
+                                Task(
+                                    name = taskTitle.value,
+                                    priority = taskPriority.value,
+                                    categoryId = currentCategory.value?.id,
+                                    repeatInterval = taskRepeatInterval,
+                                    reminders = reminders.value
+                                ), dateInfo
+                            )
+                        },
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
+
+                    if (dateInfo.date != null) {
+                        Text(
+                            text = dateInfo.date.formatTaskifyDate(
+                                dateInfo.time?.formatToAmPm() ?: "", false
+                            ),
+                            modifier = Modifier.padding(start = 10.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
 
 
                 Icon(
                     painter = painterResource(id = R.drawable.ic_flag),
                     contentDescription = "Priority",
-                    modifier = Modifier
-                        .clickable {
-                            priorityDropDownOpen.value = true
-                        },
-                    tint = taskPriority.value.color
+                    modifier = Modifier.clickable {
+                        priorityDropDownOpen.value = true
+                    },
+                    tint = MaterialTheme.colorScheme.outline
                 )
 
-                Text(
-                    text = category.value.name,
+                Text(text = currentCategory.value?.name ?: "No category",
                     modifier = Modifier
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(10.dp)
+                            MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)
                         )
                         .clickable(role = Role.Button) {
                             categoryDropDownOpen.value = true
                         }
-                        .padding(8.dp)
-
-                )
+                        .padding(8.dp))
 
             }
 
             TaskifyCreateTaskButton(isTaskTitleEmpty = taskTitle.value.isEmpty()) {
 
+                dateInfo.time?.also { time ->
+                    dateInfo.date?.set(Calendar.HOUR_OF_DAY, time.first)
+                    dateInfo.date?.set(Calendar.MINUTE, time.second)
+                }
+
+                createTask(
+                    Task(
+                        name = taskTitle.value,
+                        priority = taskPriority.value,
+                        dueDate = dateInfo.date,
+                        timeIncluded = dateInfo.time != null,
+                        categoryId = currentCategory.value?.id,
+                        creationDate = Calendar.getInstance(),
+                        repeatInterval = taskRepeatInterval,
+                        reminders = reminders.value
+                    )
+                )
             }
         }
     }

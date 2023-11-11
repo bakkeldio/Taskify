@@ -8,5 +8,5 @@ data class DateInfo(
     val date: Calendar? = null,
     val time: Pair<Int, Int>? = null,
     val repeatInterval: RepeatIntervalType = RepeatIntervalType.None,
-    val reminderTypes: Set<ReminderType> = emptySet()
+    val reminderTypes: List<ReminderType> = listOf()
 )

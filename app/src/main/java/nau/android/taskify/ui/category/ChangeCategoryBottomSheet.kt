@@ -30,65 +30,97 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.ui.searchBars.SmallerSearchBar
-import nau.android.taskify.data.generateCategories
+import nau.android.taskify.ui.model.Category
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChangeCategoryBottomSheet(
-    currentCategoryId: String,
+    categoriesViewModel: CategoriesViewModel = hiltViewModel(),
+    currentCategoryId: Long?,
     onCategoryChanged: (Category) -> Unit,
     sheetState: SheetState,
     hideBottomSheet: () -> Unit
 ) {
 
-    val categories = generateCategories()
+    val categoriesState = categoriesViewModel.getCategories()
+        .collectAsStateWithLifecycle(initialValue = CategoriesListState.Loading)
 
-    var categoriesState by remember {
-        mutableStateOf(categories)
+
+    ModalBottomSheet(onDismissRequest = {
+        hideBottomSheet()
+    }, sheetState = sheetState) {
+        when (val result = categoriesState.value) {
+            is CategoriesListState.Success -> CategoriesStateSuccess(
+                currentCategoryId,
+                result.categories
+            ) {
+                onCategoryChanged(it)
+            }
+
+            is CategoriesListState.Error -> {
+
+            }
+
+            is CategoriesListState.Empty -> {
+
+            }
+
+            is CategoriesListState.Loading -> {
+
+            }
+        }
     }
+}
+
+@Composable
+fun CategoriesStateSuccess(
+    currentCategoryId: Long?,
+    categories: List<Category>,
+    onCategoryChanged: (Category) -> Unit
+) {
 
     var searchQuery by remember {
         mutableStateOf("")
     }
 
-    ModalBottomSheet(onDismissRequest = {
-        hideBottomSheet()
-    }, sheetState = sheetState) {
+    Column(modifier = Modifier.padding(horizontal = 13.dp)) {
+        Text(
+            text = "Move to",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium
+        )
 
-        Column(modifier = Modifier.padding(horizontal = 13.dp)) {
-            Text(
-                text = "Move to",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium
-            )
+        SmallerSearchBar(
+            modifier = Modifier.padding(top = 15.dp),
+            value = searchQuery,
+            onValueChange = { query ->
+                searchQuery = query
 
-            SmallerSearchBar(
-                modifier = Modifier.padding(top = 15.dp),
-                value = searchQuery,
-                onValueChange = { query ->
-                    searchQuery = query
-                    categoriesState = categories.filter {
-                        it.name.contains(searchQuery, ignoreCase = true)
-                    }
-                })
-            LazyColumn(
-                modifier = Modifier
-                    .padding(vertical = 15.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface,
-                        RoundedCornerShape(10.dp)
-                    )
-            ) {
-                items(categoriesState) {
-                    CategoryItem(
-                        category = it,
-                        categoryId = currentCategoryId,
-                        categoryChanged = onCategoryChanged
-                    )
+                /*
+                categoriesState = categories.filter {
+                    it.name.contains(searchQuery, ignoreCase = true)
                 }
+                 */
+            })
+        LazyColumn(
+            modifier = Modifier
+                .padding(vertical = 15.dp)
+                .background(
+                    MaterialTheme.colorScheme.surface,
+                    RoundedCornerShape(10.dp)
+                )
+        ) {
+            items(categories) {
+                CategoryItem(
+                    category = it,
+                    currentCategoryId = currentCategoryId,
+                    categoryChanged = onCategoryChanged
+                )
             }
         }
     }
@@ -97,7 +129,7 @@ fun ChangeCategoryBottomSheet(
 @Composable
 fun CategoryItem(
     category: Category,
-    categoryId: String,
+    currentCategoryId: Long?,
     categoryChanged: (Category) -> Unit
 ) {
     Box(
@@ -111,7 +143,7 @@ fun CategoryItem(
             Text(text = category.name)
         }
         RadioButton(
-            selected = category.uid == categoryId, onClick = {
+            selected = category.id == currentCategoryId, onClick = {
                 categoryChanged(category)
             }, modifier = Modifier.align(Alignment.CenterEnd), colors = RadioButtonDefaults.colors(
                 unselectedColor = MaterialTheme.colorScheme.outline

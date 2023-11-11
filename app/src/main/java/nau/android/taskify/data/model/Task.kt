@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import nau.android.taskify.data.model.ReminderType
 import java.util.Calendar
 
 
@@ -15,7 +16,7 @@ import java.util.Calendar
             childColumns = ["task_category_id"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ], indices = [androidx.room.Index(value = ["task_category_id"])]
 )
 data class Task(
     @PrimaryKey(true)
@@ -28,17 +29,19 @@ data class Task(
     @ColumnInfo("task_due_date")
     val dueDate: Calendar? = null,
     @ColumnInfo("task_priority")
-    val priority: TaskPriority? = null,
+    val priority: TaskPriority = TaskPriority.NONE,
     @ColumnInfo("task_is_completed")
     val completed: Boolean = false,
     @ColumnInfo("task_is_repeating")
     val isRepeating: Boolean = false,
     @ColumnInfo("task_category_id")
     val categoryId: Long? = null,
+    @ColumnInfo("time_included")
+    val timeIncluded: Boolean = false,
     @ColumnInfo("task_reminders")
-    val reminders: List<Calendar>? = null,
+    val reminders: List<ReminderType>? = null,
     @ColumnInfo("task_alarm_interval")
-    val alarmInterval: AlarmInterval? = null,
+    val alarmInterval: AlarmInterval = AlarmInterval.NONE,
     @ColumnInfo("task_creation_date")
     val creationDate: Calendar? = null,
     @ColumnInfo("task_completion_date")

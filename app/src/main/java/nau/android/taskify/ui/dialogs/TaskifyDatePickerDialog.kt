@@ -9,29 +9,31 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,13 +51,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import java.text.SimpleDateFormat
 import nau.android.taskify.R
 import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.enums.OptionalDate
 import nau.android.taskify.ui.enums.ReminderType
 import nau.android.taskify.ui.enums.RepeatIntervalType
 import nau.android.taskify.ui.extensions.isSameDay
+import nau.android.taskify.ui.extensions.noRippleClickable
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
@@ -73,7 +76,7 @@ fun TaskifyDatePickerDialog(
     }
 
     var selectedReminders by remember {
-        mutableStateOf(emptySet<ReminderType>())
+        mutableStateOf(emptyList<ReminderType>())
     }
 
     var contentTypes by remember {
@@ -100,7 +103,6 @@ fun TaskifyDatePickerDialog(
             initialHour = time.first,
             onConfirm = { hourMinute ->
                 openTimePickerContent = false
-
                 time = hourMinute
             })
     }
@@ -122,7 +124,7 @@ fun TaskifyDatePickerDialog(
                             onDateChanged(
                                 DateInfo(
                                     date,
-                                    Pair(time.first, time.second),
+                                    if (time.third) Pair(time.first, time.second) else null,
                                     selectedRepeatIntervalType,
                                     selectedReminders
                                 )
@@ -142,16 +144,13 @@ fun TaskifyDatePickerDialog(
 
                 ContentTypeForDialog.ReminderContent -> {
                     RemainderContent(selectedReminders = selectedReminders, clearReminders = {
-                        selectedReminders = selectedReminders.toMutableSet().apply {
-                            clear()
-                        }
+                        selectedReminders = emptyList()
                     }, addReminder = {
-
-                        selectedReminders = selectedReminders.toMutableSet().apply {
+                        selectedReminders = selectedReminders.toMutableList().apply {
                             add(it)
                         }
                     }, removeReminder = {
-                        selectedReminders = selectedReminders.toMutableSet().apply {
+                        selectedReminders = selectedReminders.toMutableList().apply {
                             remove(it)
                         }
                     }) {
@@ -173,7 +172,7 @@ fun TaskifyDatePickerDialog(
 
         }, modifier = Modifier
             .fillMaxWidth(0.9f)
-            .fillMaxHeight(0.8f)
+            .wrapContentHeight()
             .background(
                 color = MaterialTheme.colorScheme.background, shape = RoundedCornerShape(5.dp)
             ), properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -185,7 +184,7 @@ fun TaskifyDatePickerDialog(
 private fun MainDatePickerContent(
     selectedDate: Calendar,
     time: Triple<Int, Int, Boolean>,
-    selectedRemainders: Set<ReminderType>,
+    selectedRemainders: List<ReminderType>,
     selectedRepeatInterval: RepeatIntervalType,
     onDateSelected: (Calendar?) -> Unit,
     onDismiss: () -> Unit,
@@ -222,7 +221,7 @@ private fun MainDatePickerContent(
         })
         CalendarGrid(selectedDate, onDateSelected)
 
-        Column() {
+        Column {
 
             OptionalDateSelection(
                 OptionalDate.fromCalendar(selectedDate),
@@ -252,7 +251,8 @@ private fun MainDatePickerContent(
                 Row(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                        .padding(vertical = 5.dp)
+                        .padding(vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = if (time.third) formatToAmPmTime(
@@ -265,7 +265,7 @@ private fun MainDatePickerContent(
                         )
                     )
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         contentDescription = null
                     )
@@ -291,7 +291,10 @@ private fun MainDatePickerContent(
                         text = "Reminder", modifier = Modifier.padding(start = 5.dp)
                     )
                 }
-                Row(modifier = Modifier.align(Alignment.CenterEnd)) {
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = if (selectedRemainders.isEmpty()) "None"
                         else if (selectedRemainders.size == 1) selectedRemainders.first().title else "${selectedRemainders.size} remainders",
@@ -301,7 +304,7 @@ private fun MainDatePickerContent(
                         )
                     )
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         contentDescription = null
                     )
@@ -327,7 +330,10 @@ private fun MainDatePickerContent(
                         text = "Repeat", modifier = Modifier.padding(start = 5.dp)
                     )
                 }
-                Row(modifier = Modifier.align(Alignment.CenterEnd)) {
+                Row(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = selectedRepeatInterval.title,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
@@ -335,14 +341,14 @@ private fun MainDatePickerContent(
 
                     )
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowRight,
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier.fillMaxWidth()
             )
             Row(
@@ -377,7 +383,7 @@ private fun RepeatIntervalContent(
 
         Box(modifier = Modifier.fillMaxWidth()) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 modifier = Modifier
                     .clickable {
@@ -407,7 +413,7 @@ private fun RepeatIntervalContent(
 
 @Composable
 private fun RemainderContent(
-    selectedReminders: Set<ReminderType>,
+    selectedReminders: List<ReminderType>,
     addReminder: (ReminderType) -> Unit,
     removeReminder: (ReminderType) -> Unit,
     clearReminders: () -> Unit,
@@ -422,7 +428,7 @@ private fun RemainderContent(
                 .padding(start = 10.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 modifier = Modifier
                     .clickable {
@@ -502,7 +508,6 @@ private fun OptionalDateSelection(
             }
         }
     }
-
 }
 
 @Composable
@@ -522,7 +527,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
                 onMonthChange(previousMonth)
             }) {
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowLeft,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                     contentDescription = "Previous Month"
                 )
             }
@@ -537,7 +542,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
                 onMonthChange(nextMonth)
             }) {
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowRight,
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = "Next Month"
                 )
             }
@@ -598,7 +603,6 @@ private fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> U
                     onDateSelected(it)
                 })
             }
-
         }
     }
 }
@@ -620,7 +624,7 @@ private fun DayCell(
         modifier = Modifier
             .padding(10.dp)
             .fillMaxSize()
-            .clickable { onDateSelected(date) },
+            .noRippleClickable { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -633,7 +637,7 @@ private fun DayCell(
                     if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                     CircleShape
                 )
-                .padding(4.dp)
+                .padding(7.dp)
                 .fillMaxSize()
         )
     }

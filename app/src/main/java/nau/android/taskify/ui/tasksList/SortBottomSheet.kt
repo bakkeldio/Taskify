@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import nau.android.taskify.data.FakeTasksData
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -28,7 +27,6 @@ fun SortBottomSheet(
     sortingType: SortingType,
     groupingTypeChanged: (GroupingType) -> Unit,
     sortingTypeChanged: (SortingType) -> Unit,
-    fakeTasksData: FakeTasksData,
     dismissRequest: () -> Unit
 ) {
 
@@ -41,10 +39,6 @@ fun SortBottomSheet(
         sheetState = modalBottomSheetState
     ) {
 
-        val groupingList = fakeTasksData.getGroupingTypes()
-
-        val sortingTypes = fakeTasksData.getSortingTypes()
-
 
         Column(
             modifier = Modifier
@@ -54,7 +48,7 @@ fun SortBottomSheet(
             Text(text = "Group by")
 
             LazyVerticalGrid(columns = GridCells.Fixed(3), content = {
-                items(groupingList) { type ->
+                items(GroupingType.values()) { type ->
                     FilterChip(selected = groupingType == type, onClick = {
                         groupingTypeChanged(type)
                     }, label = {
@@ -63,15 +57,14 @@ fun SortBottomSheet(
                             modifier = Modifier.fillMaxWidth(0.9f),
                             textAlign = TextAlign.Center
                         )
-                    }
-                    )
+                    })
                 }
             }, horizontalArrangement = Arrangement.spacedBy(25.dp))
 
             Text(text = "Sort by", modifier = Modifier.padding(top = 15.dp))
 
             LazyVerticalGrid(columns = GridCells.Fixed(3), content = {
-                items(sortingTypes) { type ->
+                items(SortingType.values()) { type ->
                     FilterChip(selected = sortingType == type, onClick = {
                         sortingTypeChanged(type)
                     }, label = {

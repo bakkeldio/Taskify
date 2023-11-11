@@ -8,74 +8,71 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import nau.android.taskify.ui.task.TaskDetails
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material.*
-
-import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.Card
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-
-import androidx.compose.ui.Modifier
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.*
-
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import dagger.hilt.android.AndroidEntryPoint
 import nau.android.taskify.ui.MainDestination
-import nau.android.taskify.ui.tasksList.ListOfTasks
-import nau.android.taskify.ui.task.Task
+import nau.android.taskify.ui.alarm.permission.AlarmPermission
+import nau.android.taskify.ui.model.TaskWithCategory
+import nau.android.taskify.ui.task.TaskDetails
 import nau.android.taskify.ui.task.TaskItemDesign
+import nau.android.taskify.ui.tasksList.ListOfTasks
 import nau.android.taskify.ui.theme.TaskifyTheme
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var permissions: AlarmPermission
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             TaskifyTheme {
-                // A surface container using the 'background' color from the theme
-                MainPage()
+                MainPage(permissions)
             }
         }
     }
 }
 
-
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MainPage() {
+fun MainPage(alarmPermission: AlarmPermission) {
     val navController = rememberNavController()
 
     var showBottomNavigation by remember {
         mutableStateOf(true)
     }
 
-
     navController.addOnDestinationChangedListener { controller, destination, arguments ->
         showBottomNavigation = showBottomNavigationInMainDestinations(destination)
     }
+
     Scaffold(bottomBar = {
         if (showBottomNavigation) {
             TaskifyBottomNavigation(navController)
@@ -88,15 +85,16 @@ fun MainPage() {
             modifier = Modifier.padding(innerPaddings)
         ) {
             composable(MainDestination.ListOfTasks.route) {
-                ListOfTasks(MainDestination.ListOfTasks) {
-                    navController.navigate("task_details") {
-
-                    }
+                ListOfTasks(MainDestination.ListOfTasks, alarmPermission = alarmPermission) {
+                    navController.navigate("task_details/$it")
                 }
             }
 
-            composable("task_details") {
-                TaskDetails(navController)
+            composable("task_details/{taskId}", arguments = listOf(navArgument("taskId") {
+                type = NavType.LongType
+            })) { backStackEntry ->
+                val taskId = backStackEntry.arguments?.getLong("taskId")
+                TaskDetails(navController, taskId)
             }
             composable(MainDestination.Categories.route) { Categories(MainDestination.Categories.route) }
             composable(MainDestination.EisenhowerMatrix.route) { EisenhowerMatrix(MainDestination.EisenhowerMatrix.route) }
@@ -109,13 +107,13 @@ fun MainPage() {
 
 
 @Composable
-fun TaskItem(task: Task, showDetails: Boolean, navigateToTaskDetails: (String) -> Unit) {
+fun TaskItem(task: TaskWithCategory, showDetails: Boolean, navigateToTaskDetails: (Long) -> Unit) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                navigateToTaskDetails("taskUid")
+                navigateToTaskDetails(task.task.id)
             }, shape = RoundedCornerShape(10.dp)
     ) {
         TaskItemDesign(task, showDetails)

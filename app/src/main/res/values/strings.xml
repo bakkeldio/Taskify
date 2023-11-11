@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Taskify</string>
+    <string name="channel_name">Taskify alarm notification channel</string>
+    <string name="channel_description">Channel for reminders</string>
+    <string name="complete_action">Done</string>
+    <string name="no_category">No category</string>
+    <string name="task_alarm_permission_dialog_title">Alarm and reminders</string>
+    <string name="task_alarm_permission_dialog_text">In order to alarms work, Taskify needs the permission to set alarms and reminders. If this permission is not granted, the existing alarms will not work as well.</string>
+    <string name="task_alarm_permission_dialog_confirm">Grant permission</string>
+    <string name="task_alarm_permission_dialog_cancel">Not now</string>
+
+    <string name="task_notification_permission_dialog_title">Notifications</string>
+    <string name="task_notification_permission_dialog_text">In order to notify the alarms, Alkaa needs the permission to launch notifications. If this permission is not granted, the existing alarms will not work as well.</string>
+    <string name="task_notification_permission_dialog_confirm">Grant permission</string>
+    <string name="task_notification_permission_dialog_cancel">Not now</string>
 </resources>

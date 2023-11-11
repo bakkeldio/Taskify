@@ -1,10 +1,21 @@
 package nau.android.taskify.ui.tasksList
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,26 +41,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
+import androidx.core.view.ViewCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
 import nau.android.taskify.TaskItem
-import nau.android.taskify.data.FakeTasksData
-import nau.android.taskify.data.generateTasks
+import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.alarm.permission.AlarmPermission
+import nau.android.taskify.ui.alarm.permission.GetGrantedNotificationPermissionState
+import nau.android.taskify.ui.customElements.DialogArguments
+import nau.android.taskify.ui.customElements.TaskifyDialog
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
-import nau.android.taskify.ui.task.Task
+import nau.android.taskify.ui.model.Task
+import nau.android.taskify.ui.model.TaskWithCategory
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class,
+    ExperimentalLayoutApi::class
+)
 @Composable
-fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Unit) {
+fun ListOfTasks(
+    section: MainDestination,
+    tasksViewModel: TaskListViewModel = hiltViewModel(),
+    alarmPermission: AlarmPermission,
+    navigateToTaskDetails: (Long) -> Unit
+) {
 
     var displayMenu by remember {
         mutableStateOf(false)
@@ -83,23 +115,33 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
         mutableStateOf(false)
     }
 
-
-    val fakeTasksData = FakeTasksData(generateTasks())
-
-    if (showBottomSheet) {
-        SortBottomSheet(groupingType = groupingType,
-            sortingType = sortingType,
-            fakeTasksData = fakeTasksData,
-            groupingTypeChanged = { newGroupingType ->
-                groupingType = newGroupingType
-            },
-            sortingTypeChanged = { newSortingType ->
-                sortingType = newSortingType
-            }) {
-            showBottomSheet = false
-        }
+    var dateForNewTask = remember {
+        DateInfo()
     }
 
+    var newTask = remember<Task?> {
+        null
+    }
+
+    val notificationPermissionState =
+        if (alarmPermission.shouldCheckNotificationPermission()) rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS) else
+            GetGrantedNotificationPermissionState.getGrantedPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+
+
+    val showExactAlarmDialog = remember {
+        mutableStateOf(false)
+    }
+
+    val showNotificationDialog = remember {
+        mutableStateOf(false)
+    }
+
+    val showRationalePermissionDialog = remember {
+        mutableStateOf(false)
+    }
+
+    val tasks = tasksViewModel.getAllTasks(groupingType, sortingType)
+        .collectAsStateWithLifecycle(initialValue = TasksListState.Loading)
 
     Scaffold(
         topBar = {
@@ -172,28 +214,83 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
         contentWindowInsets = WindowInsets(bottom = 0)
     ) { innerPaddings ->
 
+
+        if (createTaskBottomSheet.value) {
+            CreateTaskBottomSheet(
+                dateForNewTask,
+                newTask ?: Task(name = ""),
+                onDismissBottomSheet = {
+                    newTask = null
+                    createTaskBottomSheet.value = false
+                },
+                openDatePickerDialog = { task, date ->
+                    if (alarmPermission.hasExactAlarmPermission() && notificationPermissionState.status.isGranted) {
+                        newTask = task
+                        dateForNewTask = date
+                        showDatePickerDialog = true
+                        createTaskBottomSheet.value = false
+                    } else if (notificationPermissionState.status.shouldShowRationale) {
+                        showRationalePermissionDialog.value = true
+                    } else {
+                        showNotificationDialog.value = !notificationPermissionState.status.isGranted
+                        showExactAlarmDialog.value = !alarmPermission.hasExactAlarmPermission()
+                    }
+                },
+                createTask = { task ->
+                    newTask = null
+                    dateForNewTask = DateInfo()
+                    tasksViewModel.createTask(task)
+                    createTaskBottomSheet.value = false
+                })
+        }
+
+
+        if (showBottomSheet) {
+            SortBottomSheet(groupingType = groupingType,
+                sortingType = sortingType,
+                groupingTypeChanged = { newGroupingType ->
+                    groupingType = newGroupingType
+                },
+                sortingTypeChanged = { newSortingType ->
+                    sortingType = newSortingType
+                }) {
+                showBottomSheet = false
+            }
+        }
+
         if (showDatePickerDialog) {
             TaskifyDatePickerDialog(onDismiss = {
                 showDatePickerDialog = false
                 createTaskBottomSheet.value = true
             }, onDateChanged = { dateInfo ->
+                dateForNewTask = dateInfo
                 showDatePickerDialog = false
                 createTaskBottomSheet.value = true
             })
         }
-        if (createTaskBottomSheet.value) {
-            CreateTaskBottomSheet(onDismissBottomSheet = {
-                createTaskBottomSheet.value = false
-            }, openDatePickerDialog = {
-                showDatePickerDialog = true
-                createTaskBottomSheet.value = false
-            })
+
+        ExactAlarmPermissionDialog(
+            context = LocalContext.current,
+            isDialogOpen = showExactAlarmDialog.value
+        ) {
+            showExactAlarmDialog.value = false
         }
 
+        NotificationPermissionDialog(
+            permissionState = notificationPermissionState,
+            isDialogOpen = showNotificationDialog.value
+        ) {
+            showNotificationDialog.value = false
+        }
+
+
         Column(modifier = Modifier.padding(innerPaddings)) {
+
             TextField(
                 value = "",
-                onValueChange = {},
+                onValueChange = {
+
+                },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search, contentDescription = null
@@ -210,90 +307,78 @@ fun ListOfTasks(section: MainDestination, navigateToTaskDetails: (String) -> Uni
                     disabledIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 )
+            )
 
-            )
-            GroupTasks(
-                fakeTasksData,
-                groupingType = groupingType,
-                sortingType = sortingType,
-                showDetails = showDetails,
-                navigateToTaskDetails
-            )
+            when (val result = tasks.value) {
+                is TasksListState.Loading -> {
+
+                }
+
+                is TasksListState.Empty -> {
+
+                }
+
+                is TasksListState.Error -> {
+
+                }
+
+                is TasksListState.Success -> {
+                    BuildList(
+                        tasks = result.tasks,
+                        showDetails = showDetails,
+                        navigateToTaskDetails = {
+                            navigateToTaskDetails(it)
+                        })
+                }
+            }
+
         }
     }
     // Text(text = route)
 }
 
 @Composable
-private fun GroupTasks(
-    fakeTasksData: FakeTasksData,
-    groupingType: GroupingType,
-    sortingType: SortingType,
-    showDetails: Boolean,
-    navigateToTaskDetails: (String) -> Unit
-) {
-
-    val groupedTasks = fakeTasksData.getTasksInGroups(groupingType)
-
-    val sortedMap = groupedTasks.mapValues { map ->
-
-        when (sortingType) {
-            SortingType.Date -> map.value.sortedBy {
-                it.taskDate
-            }
-
-            SortingType.Priority -> map.value.sortedBy {
-                it.taskPriority.priorityNumber
-            }
-
-            SortingType.Title -> map.value.sortedBy {
-                it.name
-            }
-        }
-
-    }
-
-    val sortedHeaders = when (groupingType) {
-        GroupingType.Priority -> {
-            sortedMap.entries.sortedBy {
-                (it.key as HeaderType.Priority).priorityNumber
-            }.associate {
-                it.toPair()
-            }
-        }
-
-        GroupingType.Category -> {
-            sortedMap.entries.sortedBy {
-                it.key.title
-            }.associate {
-                it.toPair()
-            }
-        }
-
-        GroupingType.Date -> {
-            sortedMap.entries.sortedBy {
-                (it.key as HeaderType.Date).date
-            }.associate {
-                it.toPair()
-            }
-        }
-
-        GroupingType.None -> {
-            sortedMap
-        }
-    }
-
-
-    BuildList(sortedHeaders, showDetails, navigateToTaskDetails)
-
-}
-
-@Composable
 private fun BuildList(
-    list: Map<HeaderType, List<Task>>, showDetails: Boolean, navigateToTaskDetails: (String) -> Unit
+    tasks: Map<HeaderType, List<TaskWithCategory>>,
+    showDetails: Boolean,
+    navigateToTaskDetails: (Long) -> Unit
 ) {
 
-    list.forEach { map ->
+    /*
+
+  val sortedHeaders = when (groupingType) {
+      GroupingType.Priority -> {
+          sortedMap.entries.sortedBy {
+              (it.key as HeaderType.Priority).priorityNumber
+          }.associate {
+              it.toPair()
+          }
+      }
+
+      GroupingType.Category -> {
+          sortedMap.entries.sortedBy {
+              it.key.title
+          }.associate {
+              it.toPair()
+          }
+      }
+
+      GroupingType.Date -> {
+          sortedMap.entries.sortedBy {
+              (it.key as HeaderType.Date).date
+          }.associate {
+              it.toPair()
+          }
+      }
+
+      GroupingType.None -> {
+          sortedMap
+      }
+  }
+
+   */
+
+    tasks.forEach { map ->
 
         Column(modifier = Modifier.padding(13.dp)) {
             if (map.key != HeaderType.NoHeader) {
@@ -312,10 +397,64 @@ private fun BuildList(
             }
             LazyColumn(content = {
                 items(map.value) { task ->
-                    TaskItem(task, showDetails = showDetails, navigateToTaskDetails)
+                    TaskItem(task, showDetails = showDetails) { taskId ->
+                        navigateToTaskDetails(taskId)
+                    }
                 }
             }, verticalArrangement = Arrangement.spacedBy(20.dp))
         }
-
     }
+}
+
+@Composable
+fun ExactAlarmPermissionDialog(
+    context: Context,
+    isDialogOpen: Boolean,
+    onCloseDialog: () -> Unit
+) {
+    val arguments = DialogArguments(
+        title = stringResource(id = R.string.task_alarm_permission_dialog_title),
+        text = stringResource(id = R.string.task_alarm_permission_dialog_text),
+        confirmText = stringResource(id = R.string.task_alarm_permission_dialog_confirm),
+        dismissText = stringResource(id = R.string.task_alarm_permission_dialog_cancel),
+        onConfirmAction = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val intent = Intent().apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                }
+                context.startActivity(intent)
+                onCloseDialog()
+            }
+        }
+    )
+    TaskifyDialog(
+        arguments = arguments,
+        isDialogOpen = isDialogOpen,
+        onDismissRequest = onCloseDialog
+    )
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun NotificationPermissionDialog(
+    permissionState: PermissionState,
+    isDialogOpen: Boolean,
+    onCloseDialog: () -> Unit
+) {
+    val arguments = DialogArguments(
+        title = stringResource(id = R.string.task_notification_permission_dialog_title),
+        text = stringResource(id = R.string.task_notification_permission_dialog_text),
+        confirmText = stringResource(id = R.string.task_notification_permission_dialog_confirm),
+        dismissText = stringResource(id = R.string.task_notification_permission_dialog_cancel),
+        onConfirmAction = {
+            permissionState.launchPermissionRequest()
+            onCloseDialog()
+        }
+    )
+    TaskifyDialog(
+        arguments = arguments,
+        isDialogOpen = isDialogOpen,
+        onDismissRequest = onCloseDialog
+    )
 }

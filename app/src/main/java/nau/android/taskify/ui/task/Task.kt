@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import nau.android.taskify.ui.category.Category
+import nau.android.taskify.ui.extensions.formatTaskifyDate
+import nau.android.taskify.ui.model.TaskWithCategory
 
 
 class Task(
@@ -44,12 +46,9 @@ enum class TaskPriority(val color: Color, val priorityNumber: Int) {
 }
 
 @Composable
-fun TaskItemDesign(task: Task, showDetails: Boolean) {
+fun TaskItemDesign(taskWithCategory: TaskWithCategory, showDetails: Boolean) {
 
     val passedDate = false
-
-    val hasDescription = task.description.isNotEmpty()
-
 
     ConstraintLayout(
         Modifier
@@ -62,19 +61,21 @@ fun TaskItemDesign(task: Task, showDetails: Boolean) {
 
 
         RadioButton(selected = false,
-            onClick = { /*TODO*/ },
+            onClick = {
+
+            },
             modifier = Modifier
                 .constrainAs(radioButton) {
                     top.linkTo(parent.top)
                 }
                 .wrapContentSize(Alignment.TopStart),
             colors = RadioButtonDefaults.colors(
-                unselectedColor = task.taskPriority.color, selectedColor = Color.Gray
+                unselectedColor = MaterialTheme.colorScheme.outline, selectedColor = Color.Gray
             ))
 
 
         Text(
-            text = task.name,
+            text = taskWithCategory.task.name,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.constrainAs(title) {
                 top.linkTo(radioButton.top)
@@ -91,9 +92,8 @@ fun TaskItemDesign(task: Task, showDetails: Boolean) {
 
 
         if (showDetails) {
-
-            if (hasDescription) {
-                Text(text = task.description,
+            if (taskWithCategory.task.description != null) {
+                Text(text = taskWithCategory.task.description,
                     modifier = Modifier
                         .constrainAs(description) {
                             start.linkTo(title.start)
@@ -120,7 +120,7 @@ fun TaskItemDesign(task: Task, showDetails: Boolean) {
                     contentDescription = null
                 )
                 Text(
-                    text = task.category?.name ?: "No category",
+                    text = taskWithCategory.category?.name ?: "No category",
                     modifier = Modifier.padding(start = 5.dp),
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.outline, fontWeight = FontWeight.Medium
@@ -130,7 +130,7 @@ fun TaskItemDesign(task: Task, showDetails: Boolean) {
             }
         }
 
-        Text(text = task.taskDate,
+        Text(text = taskWithCategory.task.dueDate?.formatTaskifyDate() ?: "",
             modifier = Modifier
                 .constrainAs(date) {
 
@@ -160,6 +160,6 @@ fun TaskItemDesign(task: Task, showDetails: Boolean) {
 @Composable
 fun TaskItemDesignPreview() {
 
-    TaskItemDesign(Task(), false)
+    //TaskItemDesign(Task(), false)
 
 }
