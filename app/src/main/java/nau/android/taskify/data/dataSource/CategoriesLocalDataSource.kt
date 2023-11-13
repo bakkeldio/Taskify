@@ -17,4 +17,16 @@ class CategoriesLocalDataSource @Inject constructor(
     override suspend fun getCategoryById(id: Long): Category {
         return categoryDao.getCategoryById(id)
     }
+
+    override suspend fun editCategory(category: Category) {
+        categoryDao.updateCategory(category)
+    }
+
+    override suspend fun createCategory(category: Category) {
+        categoryDao.createCategory(category)
+    }
+
+    override suspend fun deleteCategory(category: Category) {
+        categoryDao.deleteCategory(category)
+    }
 }

@@ -16,6 +16,5 @@ data class Category(
     @ColumnInfo("category_id")
     val id: Long = 0,
     val name: String,
-    @ColumnInfo("category_icon_reference")
-    val iconReference: String? = null
+    val color: String
 )

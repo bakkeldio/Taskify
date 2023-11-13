@@ -34,6 +34,7 @@ class TaskMapper @Inject constructor(
 
     fun toRepo(task: Task): TaskEntity {
         return TaskEntity(
+            id = if (task.id > 0) task.id else 0,
             name = task.name,
             description = task.description,
             dueDate = task.dueDate,

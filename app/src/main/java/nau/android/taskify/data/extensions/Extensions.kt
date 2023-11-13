@@ -34,3 +34,10 @@ fun Context.cancelAlarm(pendingIntent: PendingIntent) {
 
 fun Context.getNotificationManager() =
     getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+
+fun Int.toStringColor() =
+    String.format(HexFormat, HexWhite and this)
+
+private const val HexFormat = "#%06X"
+
+private const val HexWhite = 0xFFFFFF

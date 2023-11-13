@@ -1,7 +1,7 @@
 package nau.android.taskify.ui.enums
 
-enum class TaskRepeatInterval(val id: Int, val title: String = "") {
-    NONE(0, ),
+enum class TaskRepeatInterval(val id: Int, val title: String) {
+    NONE(0, "None"),
     HOURLY(1, "Hourly"),
     DAILY(2, "Daily"),
     WEEKLY(3, "Weekly"),

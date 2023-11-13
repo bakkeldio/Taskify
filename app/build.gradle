@@ -68,6 +68,9 @@ dependencies {
     implementation "androidx.room:room-runtime:$room_version"
     annotationProcessor "androidx.room:room-compiler:$room_version"
 
+
+    implementation("androidx.compose.runtime:runtime-livedata:1.5.4")
+
     implementation 'com.google.accompanist:accompanist-permissions:0.32.0'
     // To use Kotlin annotation processing tool (kapt)
     kapt "androidx.room:room-compiler:$room_version"

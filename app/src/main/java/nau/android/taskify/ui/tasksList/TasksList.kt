@@ -9,11 +9,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +33,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -67,9 +70,12 @@ import nau.android.taskify.ui.alarm.permission.AlarmPermission
 import nau.android.taskify.ui.alarm.permission.GetGrantedNotificationPermissionState
 import nau.android.taskify.ui.customElements.DialogArguments
 import nau.android.taskify.ui.customElements.TaskifyDialog
+import nau.android.taskify.ui.customElements.TaskifyMenuDropDown
+import nau.android.taskify.ui.customElements.TaskifyMenuIcon
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
+import nau.android.taskify.ui.searchBars.TaskifySearchBar
 
 @OptIn(
     ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class,
@@ -150,58 +156,29 @@ fun ListOfTasks(
                     Text(
                         text = section.title, style = MaterialTheme.typography.titleLarge
                     )
-
                 },
                 actions = {
-                    Icon(imageVector = Icons.Default.Menu,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(end = 13.dp)
-                            .size(24.dp)
-                            .clickable {
-                                displayMenu = !displayMenu
-                            })
-
-                    DropdownMenu(
-                        expanded = displayMenu,
-                        onDismissRequest = { displayMenu = false }) {
-                        DropdownMenuItem(text = { Text(text = "Show details") }, onClick = {
-                            showDetails = !showDetails
-                        }, trailingIcon = {
-                            Checkbox(checked = showDetails, onCheckedChange = {})
-                        })
-
-                        DropdownMenuItem(text = { Text(text = "Show completed") },
-                            onClick = { showCompleted = !showCompleted },
-                            trailingIcon = {
-                                Checkbox(
-                                    checked = showCompleted,
-                                    onCheckedChange = {},
-                                    modifier = Modifier.padding(0.dp)
-                                )
-                            })
-
-                        DropdownMenuItem(text = { Text(text = "Sort") }, onClick = {
+                    TaskifyMenuIcon(displayMenu = displayMenu, onDisplayMenuChanged = {
+                        displayMenu = it
+                    })
+                    TaskifyMenuDropDown(
+                        displayMenu = displayMenu,
+                        showDetails = showDetails,
+                        showCompleted = showCompleted,
+                        onShowDetailsChanged = {
+                            showDetails = it
+                        },
+                        onShowCompletedChanged = {
+                            showCompleted = it
+                        },
+                        displayMenuChanged = {
+                            displayMenu = it
+                        },
+                        onShowSortBottomSheet = {
                             displayMenu = false
                             showBottomSheet = true
-                        }, leadingIcon = {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_sort),
-                                contentDescription = null
-                            )
-                        })
-
-                        DropdownMenuItem(text = { Text(text = "Select") },
-                            onClick = { /*TODO*/ },
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_selection),
-                                    contentDescription = null
-                                )
-                            })
-
-
-                    }
+                        }
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
@@ -259,7 +236,7 @@ fun ListOfTasks(
         }
 
         if (showDatePickerDialog) {
-            TaskifyDatePickerDialog(onDismiss = {
+            TaskifyDatePickerDialog(dateForNewTask, onDismiss = {
                 showDatePickerDialog = false
                 createTaskBottomSheet.value = true
             }, onDateChanged = { dateInfo ->
@@ -286,28 +263,9 @@ fun ListOfTasks(
 
         Column(modifier = Modifier.padding(innerPaddings)) {
 
-            TextField(
-                value = "",
-                onValueChange = {
+            TaskifySearchBar(onValueChange = {
 
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search, contentDescription = null
-                    )
-                },
-                placeholder = { Text(text = "Search") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 13.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    errorIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-            )
+            })
 
             when (val result = tasks.value) {
                 is TasksListState.Loading -> {

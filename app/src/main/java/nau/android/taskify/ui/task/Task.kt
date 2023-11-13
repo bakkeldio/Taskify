@@ -54,6 +54,7 @@ fun TaskItemDesign(taskWithCategory: TaskWithCategory, showDetails: Boolean) {
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
+            .padding(vertical = 5.dp)
     ) {
         val (radioButton, title, date, description, category) = createRefs()
 

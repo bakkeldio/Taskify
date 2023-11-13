@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -51,10 +52,10 @@ import nau.android.taskify.ui.customElements.TaskifyTextField
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.dialogs.formatToAmPmTime
 import nau.android.taskify.ui.enums.Priority
-import nau.android.taskify.ui.enums.RepeatIntervalType
 import nau.android.taskify.ui.enums.TaskRepeatInterval
 import nau.android.taskify.ui.extensions.formatTaskifyDate
 import nau.android.taskify.ui.extensions.formatToAmPm
+import nau.android.taskify.ui.extensions.keyboardAsState
 import nau.android.taskify.ui.extensions.toast
 import nau.android.taskify.ui.model.Task
 import java.util.Calendar
@@ -138,7 +139,7 @@ fun TaskDetails(
                     updateTaskCategory = {
                         viewModel.updateTaskCategory(it)
                     }, hideCategoryBottomSheet = {
-                       showCategoryBottomSheet = false
+                        showCategoryBottomSheet = false
                     }, hideTaskDetailsBottomSheet = {
                         showTaskDetailBottomSheet = false
                     }
@@ -207,26 +208,29 @@ fun TaskDetailsStateSuccess(
     hideTaskDetailsBottomSheet: () -> Unit
 ) {
 
-
-    var selectedDate by remember {
-        mutableStateOf(Calendar.getInstance())
-    }
-
-    var selectedTime by remember {
-        mutableStateOf("")
-    }
-
-    var selectedRepeatInterval by remember {
-        mutableStateOf(RepeatIntervalType.None)
-    }
-
     val showDatePickerDialog = remember {
         mutableStateOf(false)
     }
 
+    var taskTitle by remember {
+        mutableStateOf(taskDetail.name)
+    }
+
+    var taskDescription by remember {
+        mutableStateOf(taskDetail.description)
+    }
+
+    val focusManager = LocalFocusManager.current
+
     val categorySheetState = rememberModalBottomSheetState()
 
     val taskDetailSheetState = rememberModalBottomSheetState()
+
+    val keyboardState = keyboardAsState()
+
+    if (!keyboardState.value) {
+        focusManager.clearFocus()
+    }
 
     if (showCategoryBottomSheet) {
         ChangeCategoryBottomSheet(
@@ -246,17 +250,18 @@ fun TaskDetailsStateSuccess(
     }
 
     if (showDatePickerDialog.value) {
-        TaskifyDatePickerDialog(onDismiss = {
-            showDatePickerDialog.value = false
-        }, onDateChanged = { dateInfo ->
-            updateDateOfTheTask(dateInfo)
-            showDatePickerDialog.value = false
-            selectedTime = dateInfo.time?.let {
-                formatToAmPmTime(it.first, it.second)
-            } ?: ""
-            selectedRepeatInterval = dateInfo.repeatInterval
-            selectedDate = dateInfo.date
-        })
+        TaskifyDatePickerDialog(
+            DateInfo(
+                date = taskDetail.dueDate,
+                repeatInterval = taskDetail.repeatInterval,
+                reminderTypes = taskDetail.reminders,
+                timeIncluded = taskDetail.timeIncluded
+            ), onDismiss = {
+                showDatePickerDialog.value = false
+            }, onDateChanged = { dateInfo ->
+                updateDateOfTheTask(dateInfo)
+                showDatePickerDialog.value = false
+            })
     }
 
     Column(
@@ -315,16 +320,18 @@ fun TaskDetailsStateSuccess(
         }
 
         TaskifyTextField(
-            value = taskDetail.name,
+            value = taskTitle,
             placeHolder = "What would you like to do?",
             onValueChange = { newTitle ->
                 updateTaskTitle(newTitle)
+                taskTitle = newTitle
             })
         TaskifyTextField(
             Modifier.padding(top = 5.dp),
-            value = taskDetail.description ?: "",
+            value = taskDescription ?: "",
             onValueChange = { newDescription ->
                 updateTaskDescription(newDescription)
+                taskDescription = newDescription
             })
 
     }

@@ -73,7 +73,7 @@ fun SmallerSearchBar(modifier: Modifier, value: String = "", onValueChange: (Str
 }
 
 @Composable
-fun TaskifySearchBar(modifier: Modifier, value: String = "", onValueChange: (String) -> Unit) {
+fun TaskifySearchBar(modifier: Modifier = Modifier, value: String = "", onValueChange: (String) -> Unit) {
     TextField(
         value = value,
         onValueChange = {

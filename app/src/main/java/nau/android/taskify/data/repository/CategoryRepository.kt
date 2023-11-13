@@ -26,4 +26,16 @@ class CategoryRepository @Inject constructor(
         }
     }
 
+    override suspend fun editCategory(category: Category) {
+        localDataSource.editCategory(categoryMapper.toRepo(category))
+    }
+
+    override suspend fun createCategory(category: Category) {
+        localDataSource.createCategory(categoryMapper.toRepo(category))
+    }
+
+    override suspend fun deleteCategory(category: Category) {
+        localDataSource.deleteCategory(categoryMapper.toRepo(category))
+    }
+
 }

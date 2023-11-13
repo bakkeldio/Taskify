@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
@@ -33,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,9 +54,10 @@ import nau.android.taskify.R
 import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.enums.OptionalDate
 import nau.android.taskify.ui.enums.ReminderType
-import nau.android.taskify.ui.enums.RepeatIntervalType
+import nau.android.taskify.ui.enums.TaskRepeatInterval
 import nau.android.taskify.ui.extensions.isSameDay
 import nau.android.taskify.ui.extensions.noRippleClickable
+import nau.android.taskify.ui.model.Task
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -65,18 +65,17 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskifyDatePickerDialog(
-    onDismiss: () -> Unit,
-    onDateChanged: (DateInfo) -> Unit
+    dateInfo: DateInfo, onDismiss: () -> Unit, onDateChanged: (DateInfo) -> Unit
 ) {
     var selectedDate by remember {
-        mutableStateOf(Calendar.getInstance())
+        mutableStateOf(dateInfo.date ?: Calendar.getInstance())
     }
     var openTimePickerContent by remember {
         mutableStateOf(false)
     }
 
     var selectedReminders by remember {
-        mutableStateOf(emptyList<ReminderType>())
+        mutableStateOf(dateInfo.reminderTypes)
     }
 
     var contentTypes by remember {
@@ -84,26 +83,25 @@ fun TaskifyDatePickerDialog(
     }
 
     var selectedRepeatIntervalType by remember {
-        mutableStateOf(RepeatIntervalType.None)
+        mutableStateOf(dateInfo.repeatInterval)
     }
 
-    var time by remember {
-        mutableStateOf(
-            Triple(
-                selectedDate[Calendar.HOUR], selectedDate[Calendar.MINUTE], false
-            )
-        )
+    var timeIncluded by remember {
+        mutableStateOf(dateInfo.timeIncluded)
     }
 
     if (openTimePickerContent) {
         TaskifyTimePickerDialog(onDismiss = {
             openTimePickerContent = false
         },
-            initialMinute = time.second,
-            initialHour = time.first,
+            initialMinute = getMinutes(selectedDate, timeIncluded),
+            initialHour = getHourOfTheDay(selectedDate, timeIncluded),
             onConfirm = { hourMinute ->
                 openTimePickerContent = false
-                time = hourMinute
+                val newDateWithTime = selectedDate.clone() as Calendar
+                newDateWithTime.set(Calendar.HOUR_OF_DAY, hourMinute.first)
+                newDateWithTime.set(Calendar.MINUTE, hourMinute.second)
+                selectedDate = newDateWithTime
             })
     }
 
@@ -113,7 +111,7 @@ fun TaskifyDatePickerDialog(
             when (contentTypes) {
                 ContentTypeForDialog.DatePickerContent -> {
                     MainDatePickerContent(selectedDate,
-                        time,
+                        timeIncluded,
                         selectedReminders,
                         selectedRepeatIntervalType,
                         {
@@ -124,7 +122,7 @@ fun TaskifyDatePickerDialog(
                             onDateChanged(
                                 DateInfo(
                                     date,
-                                    if (time.third) Pair(time.first, time.second) else null,
+                                    timeIncluded,
                                     selectedRepeatIntervalType,
                                     selectedReminders
                                 )
@@ -135,10 +133,21 @@ fun TaskifyDatePickerDialog(
                         },
                         openReminder = {
                             contentTypes = ContentTypeForDialog.ReminderContent
-                        }, openRepeatIntervalScreen = {
+                        },
+                        openRepeatIntervalScreen = {
                             contentTypes = ContentTypeForDialog.RepeatIntervalContent
-                        }, clearDate = {
+                        },
+                        clearDate = {
                             onDateChanged(DateInfo())
+                        },
+                        clearReminders = {
+                            selectedReminders = emptyList()
+                        },
+                        clearRepeatInterval = {
+                            selectedRepeatIntervalType = TaskRepeatInterval.NONE
+                        },
+                        clearTime = {
+                            timeIncluded = false
                         })
                 }
 
@@ -159,8 +168,7 @@ fun TaskifyDatePickerDialog(
                 }
 
                 ContentTypeForDialog.RepeatIntervalContent -> {
-                    RepeatIntervalContent(
-                        selectedRepeatInterval = selectedRepeatIntervalType,
+                    RepeatIntervalContent(selectedRepeatInterval = selectedRepeatIntervalType,
                         selectRepeatInterval = { newRepeatInterval ->
                             selectedRepeatIntervalType = newRepeatInterval
                             contentTypes = ContentTypeForDialog.DatePickerContent
@@ -183,15 +191,18 @@ fun TaskifyDatePickerDialog(
 @Composable
 private fun MainDatePickerContent(
     selectedDate: Calendar,
-    time: Triple<Int, Int, Boolean>,
+    timeIncluded: Boolean,
     selectedRemainders: List<ReminderType>,
-    selectedRepeatInterval: RepeatIntervalType,
+    selectedRepeatInterval: TaskRepeatInterval,
     onDateSelected: (Calendar?) -> Unit,
     onDismiss: () -> Unit,
     onConfirmDate: (Calendar) -> Unit,
     openTimePicker: () -> Unit,
     openReminder: () -> Unit,
     openRepeatIntervalScreen: () -> Unit,
+    clearReminders: () -> Unit,
+    clearTime: () -> Unit,
+    clearRepeatInterval: () -> Unit,
     clearDate: () -> Unit
 ) {
     Column {
@@ -201,17 +212,15 @@ private fun MainDatePickerContent(
                 .padding(start = 10.dp)
         ) {
             TextButton(onClick = {
-
+                clearDate()
             }, modifier = Modifier.align(Alignment.CenterStart)) {
                 Text(
-                    text = "Clear",
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.clickable {
-                        clearDate()
-                    })
+                    text = stringResource(id = R.string.clear),
+                    color = MaterialTheme.colorScheme.error
+                )
             }
             Text(
-                text = "Date & Time",
+                text = stringResource(id = R.string.date_time_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -223,147 +232,103 @@ private fun MainDatePickerContent(
 
         Column {
 
-            OptionalDateSelection(
-                OptionalDate.fromCalendar(selectedDate),
+            OptionalDateSelection(OptionalDate.fromCalendar(selectedDate),
                 selectedDatePreference = {
                     onDateSelected(OptionalDate.getDate(it))
                 })
 
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 15.dp, end = 15.dp, top = 15.dp)
-                .clickable {
-                    openTimePicker()
-                }) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(vertical = 5.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_alarm),
-                        contentDescription = null
-                    )
-                    Text(
-                        text = "Time", modifier = Modifier.padding(start = 5.dp)
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (time.third) formatToAmPmTime(
-                            time.first,
-                            time.second
-                        ) else "None",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+
+            DateSection.values().forEach { section ->
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 15.dp, end = 15.dp, top = 15.dp)
+                    .clickable {
+                        when (section) {
+                            DateSection.TIME -> openTimePicker()
+                            DateSection.REMINDERS -> openReminder()
+                            DateSection.REPEAT_INTERVAL -> openRepeatIntervalScreen()
+                        }
+                    }) {
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(vertical = 5.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = section.icon), contentDescription = null
                         )
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        contentDescription = null
-                    )
-                }
-            }
-
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 15.dp, end = 15.dp, top = 15.dp)
-                .clickable {
-                    openReminder()
-                }) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(vertical = 5.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_notification),
-                        contentDescription = null
-                    )
-                    Text(
-                        text = "Reminder", modifier = Modifier.padding(start = 5.dp)
-                    )
-                }
-                Row(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (selectedRemainders.isEmpty()) "None"
-                        else if (selectedRemainders.size == 1) selectedRemainders.first().title else "${selectedRemainders.size} remainders",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            text = stringResource(id = section.titleR),
+                            modifier = Modifier.padding(start = 5.dp)
                         )
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        contentDescription = null
-                    )
-                }
-            }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when (section) {
+                                DateSection.TIME -> {
+                                    if (timeIncluded) formatToAmPmTime(
+                                        selectedDate.get(Calendar.HOUR_OF_DAY),
+                                        selectedDate.get(Calendar.MINUTE)
+                                    ) else section.none
+                                }
 
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 15.dp, end = 15.dp, top = 15.dp)
-                .clickable {
-                    openRepeatIntervalScreen()
-                }) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(vertical = 5.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_repeat),
-                        contentDescription = null
-                    )
-                    Text(
-                        text = "Repeat", modifier = Modifier.padding(start = 5.dp)
-                    )
-                }
-                Row(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = selectedRepeatInterval.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                DateSection.REPEAT_INTERVAL -> {
+                                    selectedRepeatInterval.title
+                                }
 
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                                DateSection.REMINDERS -> {
+                                    if (selectedRemainders.isEmpty()) section.none
+                                    else if (selectedRemainders.size == 1) selectedRemainders.first().title else "${selectedRemainders.size} remainders"
+                                }
+                            }, style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                        when (section) {
+                            DateSection.TIME -> {
+                                IconForDateSection(hasInfo = timeIncluded) {
+                                    clearTime()
+                                }
+                            }
+
+                            DateSection.REPEAT_INTERVAL -> {
+                                IconForDateSection(hasInfo = selectedRepeatInterval != TaskRepeatInterval.NONE) {
+                                    clearRepeatInterval()
+                                }
+                            }
+
+                            DateSection.REMINDERS -> {
+                                IconForDateSection(hasInfo = selectedRemainders.isNotEmpty()) {
+                                    clearReminders()
+                                }
+                            }
+                        }
+                    }
                 }
+
             }
             Spacer(modifier = Modifier.height(10.dp))
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth()
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround
             ) {
                 TextButton(onClick = {
                     onDismiss()
                 }) {
-                    Text(text = "Cancel", fontSize = 16.sp)
+                    Text(text = stringResource(id = R.string.cancel), fontSize = 16.sp)
                 }
                 TextButton(onClick = {
                     onConfirmDate(selectedDate)
                 }) {
-                    Text(text = "Done", fontSize = 16.sp)
+                    Text(text = stringResource(id = R.string.done), fontSize = 16.sp)
                 }
 
             }
@@ -375,15 +340,14 @@ private fun MainDatePickerContent(
 
 @Composable
 private fun RepeatIntervalContent(
-    selectedRepeatInterval: RepeatIntervalType,
-    selectRepeatInterval: (RepeatIntervalType) -> Unit,
+    selectedRepeatInterval: TaskRepeatInterval,
+    selectRepeatInterval: (TaskRepeatInterval) -> Unit,
     onDismiss: () -> Unit
 ) {
     Column(modifier = Modifier.padding(top = 10.dp, start = 15.dp, end = 15.dp)) {
 
         Box(modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 modifier = Modifier
                     .clickable {
@@ -397,7 +361,7 @@ private fun RepeatIntervalContent(
             )
         }
 
-        RepeatIntervalType.values().forEach { type ->
+        TaskRepeatInterval.values().forEach { type ->
             Row(
                 modifier = Modifier.padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -427,8 +391,7 @@ private fun RemainderContent(
                 .fillMaxWidth()
                 .padding(start = 10.dp)
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 modifier = Modifier
                     .clickable {
@@ -450,11 +413,10 @@ private fun RemainderContent(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Reminder is " + if (selectedReminders.isNotEmpty()) "on" else "off", style =
-                MaterialTheme.typography.titleMedium
+                text = "Reminder is " + if (selectedReminders.isNotEmpty()) "on" else "off",
+                style = MaterialTheme.typography.titleMedium
             )
-            Switch(checked =
-            selectedReminders.isNotEmpty(), onCheckedChange = { checked ->
+            Switch(checked = selectedReminders.isNotEmpty(), onCheckedChange = { checked ->
                 if (checked) {
                     addReminder(ReminderType.FiveMinutesBefore)
                 } else {
@@ -469,8 +431,7 @@ private fun RemainderContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = selectedReminders.contains(type),
-                    onCheckedChange = {
+                    checked = selectedReminders.contains(type), onCheckedChange = {
                         if (selectedReminders.contains(type)) {
                             removeReminder(type)
                         } else {
@@ -644,7 +605,38 @@ private fun DayCell(
 }
 
 private enum class ContentTypeForDialog {
-    DatePickerContent,
-    ReminderContent,
-    RepeatIntervalContent
+    DatePickerContent, ReminderContent, RepeatIntervalContent
+}
+
+private enum class DateSection(val icon: Int, val titleR: Int, val none: String = "None") {
+    TIME(R.drawable.ic_alarm, R.string.alarm_time), REMINDERS(
+        R.drawable.ic_notification,
+        R.string.reminder
+    ),
+    REPEAT_INTERVAL(R.drawable.ic_repeat, R.string.repeat_interval)
+}
+
+private fun getHourOfTheDay(calendar: Calendar, timeIncluded: Boolean = false): Int {
+    return if (timeIncluded) calendar.get(Calendar.HOUR_OF_DAY) else Calendar.getInstance()
+        .get(Calendar.HOUR_OF_DAY)
+}
+
+private fun getMinutes(calendar: Calendar, timeIncluded: Boolean = false): Int {
+    return if (timeIncluded) calendar.get(Calendar.MINUTE) else Calendar.getInstance()
+        .get(Calendar.MINUTE)
+}
+
+@Composable
+private fun IconForDateSection(hasInfo: Boolean, clicked: () -> Unit) = if (hasInfo) Icon(
+    painter = painterResource(id = R.drawable.ic_cross),
+    tint = MaterialTheme.colorScheme.outline,
+    contentDescription = "Remove",
+    modifier = Modifier.clickable {
+        clicked()
+    }) else {
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        contentDescription = "Follow"
+    )
 }

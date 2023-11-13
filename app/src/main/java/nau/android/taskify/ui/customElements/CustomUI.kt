@@ -1,17 +1,17 @@
 package nau.android.taskify.ui.customElements
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -21,20 +21,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.R
-import nau.android.taskify.ui.category.CategoriesListState
-import nau.android.taskify.ui.category.CategoriesViewModel
-import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.enums.Priority
 import nau.android.taskify.ui.extensions.noRippleClickable
 
@@ -133,53 +126,69 @@ fun TaskifyPrioritySelectionDropdownMenu(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TaskifyCategorySelectionDropDownMenu(
-    viewModel: CategoriesViewModel = hiltViewModel(),
-    dropDownMenuOpen: Boolean,
-    onDismissRequest: () -> Unit,
-    onChangeCategory: (Category) -> Unit
+fun TaskifyMenuDropDown(
+    displayMenu: Boolean,
+    showDetails: Boolean,
+    showCompleted: Boolean,
+    onShowDetailsChanged: (Boolean) -> Unit,
+    onShowCompletedChanged: (Boolean) -> Unit,
+    displayMenuChanged: (Boolean) -> Unit,
+    onShowSortBottomSheet: () -> Unit
 ) {
+    DropdownMenu(
+        expanded = displayMenu,
+        onDismissRequest = { displayMenuChanged(false) },
+        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+    ) {
+        DropdownMenuItem(text = { Text(text = "Show details") }, onClick = {
+            onShowDetailsChanged(!showDetails)
+        }, trailingIcon = {
+            Checkbox(checked = showDetails, onCheckedChange = null)
+        })
 
-    val categories =
-        viewModel.getCategories().collectAsStateWithLifecycle(CategoriesListState.Loading)
 
-    when (val result = categories.value) {
+        DropdownMenuItem(text = { Text(text = "Show completed") },
+            onClick = { onShowCompletedChanged(!showCompleted) },
+            trailingIcon = {
+                Checkbox(
+                    checked = showCompleted,
+                    onCheckedChange = null,
+                    modifier = Modifier.padding(0.dp)
+                )
+            })
 
-        is CategoriesListState.Success -> {
-            CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
-                DropdownMenu(
-                    expanded = dropDownMenuOpen,
-                    onDismissRequest = onDismissRequest,
-                    properties = PopupProperties(false),
-                    modifier = Modifier
-                        .heightIn(max = 250.dp)
-                        .fillMaxWidth(0.5f)
-                ) {
+        DropdownMenuItem(text = { Text(text = "Sort") }, onClick = {
+            onShowSortBottomSheet()
+        }, leadingIcon = {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_sort),
+                contentDescription = null
+            )
+        })
 
-                    result.categories.forEach { category ->
-                        DropdownMenuItem(text = {
-                            Text(
-                                text = category.name,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }, onClick = {
-                            onChangeCategory(category)
-                        }, leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.MailOutline,
-                                contentDescription = "category_icon"
-                            )
-                        })
+        DropdownMenuItem(text = { Text(text = "Select") },
+            onClick = { /*TODO*/ },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_selection),
+                    contentDescription = null
+                )
+            })
 
-                    }
-                }
-            }
-        }
-
-        else -> {}
 
     }
+}
+
+@Composable
+fun TaskifyMenuIcon(displayMenu: Boolean, onDisplayMenuChanged: (Boolean) -> Unit) {
+    Icon(imageVector = Icons.Default.Menu,
+        contentDescription = null,
+        modifier = Modifier
+            .padding(end = 13.dp)
+            .size(24.dp)
+            .clickable {
+                onDisplayMenuChanged(!displayMenu)
+            })
+
 }

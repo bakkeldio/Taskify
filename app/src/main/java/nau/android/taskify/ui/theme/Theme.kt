@@ -82,12 +82,15 @@ fun TaskifyTheme(
   useDarkTheme: Boolean = isSystemInDarkTheme(),
   content: @Composable () -> Unit
 ) {
-    val context = LocalContext.current
+    //val context = LocalContext.current
     val colors = when {
+        /*
         (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) -> {
             if (useDarkTheme) dynamicDarkColorScheme(context)
             else dynamicLightColorScheme(context)
         }
+
+         */
         useDarkTheme -> DarkColors
         else -> LightColors
     }

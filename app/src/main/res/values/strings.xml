@@ -13,4 +13,26 @@
     <string name="task_notification_permission_dialog_text">In order to notify the alarms, Alkaa needs the permission to launch notifications. If this permission is not granted, the existing alarms will not work as well.</string>
     <string name="task_notification_permission_dialog_confirm">Grant permission</string>
     <string name="task_notification_permission_dialog_cancel">Not now</string>
+
+
+    <string name="alarm_time">Time</string>
+    <string name="reminder">Reminder</string>
+    <string name="repeat_interval">Repeat Interval</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="clear">Clear</string>
+    <string name="None">None</string>
+    <string name="date_time_title">Date &amp; Time</string>
+    <string name="create_new_category">Create new category</string>
+    <string name="please_input_category">Please input category</string>
+
+    <string name="color">Color</string>
+    <string name="none">None</string>
+    <string name="icon">Icon</string>
+
+    <string name="create_button">Create</string>
+    <string name="update_button">Update</string>
+    <string name="name">Name</string>
+
+
 </resources>

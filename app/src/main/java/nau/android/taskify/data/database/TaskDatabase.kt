@@ -10,7 +10,7 @@ import nau.android.taskify.data.database.typeConverters.Converters
 import nau.android.taskify.data.model.Category
 import nau.android.taskify.data.model.Task
 
-@Database(entities = [Task::class, Category::class], version = 2)
+@Database(entities = [Task::class, Category::class], version = 1)
 @TypeConverters(Converters::class)
 abstract class TaskDatabase : RoomDatabase() {
 

@@ -15,6 +15,7 @@ import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.alarm.CompleteTask
 import nau.android.taskify.ui.category.TaskCategoryState
 import nau.android.taskify.ui.enums.Priority
+import nau.android.taskify.ui.extensions.Debouncer
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,7 +23,8 @@ class TaskViewModel @Inject constructor(
     private val taskRepo: ITaskRepository,
     private val categoryRepo: ICategoryRepository,
     private val alarmScheduler: AlarmScheduler,
-    private val completeTask: CompleteTask
+    private val completeTask: CompleteTask,
+    private val debouncer: Debouncer
 ) : ViewModel() {
 
     private val taskDetailsMutableStateFlow: MutableStateFlow<TaskDetailsState> =
@@ -67,7 +69,7 @@ class TaskViewModel @Inject constructor(
         val taskResult = taskDetailsMutableStateFlow.value as? TaskDetailsState.Success ?: return
         viewModelScope.launch {
             taskRepo.updateTask(taskResult.task.copy(dueDate = dueDate))
-            if (dueDate != null && dateInfo.time != null) {
+            if (dueDate != null && dateInfo.timeIncluded) {
                 alarmScheduler.scheduleTaskAlarm(taskResult.task.id, dueDate.timeInMillis)
             } else {
                 alarmScheduler.cancelTaskAlarm(taskResult.task.id)
@@ -84,14 +86,14 @@ class TaskViewModel @Inject constructor(
 
     fun updateTaskTitle(title: String) {
         val result = taskDetailsMutableStateFlow.value as? TaskDetailsState.Success ?: return
-        viewModelScope.launch {
+        debouncer(viewModelScope) {
             taskRepo.updateTask(result.task.copy(name = title))
         }
     }
 
     fun updateTaskDescription(description: String) {
         val result = taskDetailsStateFlow.value as? TaskDetailsState.Success ?: return
-        viewModelScope.launch {
+        debouncer(viewModelScope) {
             taskRepo.updateTask(result.task.copy(description = description))
         }
     }

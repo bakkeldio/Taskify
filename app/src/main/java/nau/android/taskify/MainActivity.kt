@@ -4,12 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -23,7 +21,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -37,6 +34,7 @@ import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.alarm.permission.AlarmPermission
+import nau.android.taskify.ui.category.CategoriesList
 import nau.android.taskify.ui.model.TaskWithCategory
 import nau.android.taskify.ui.task.TaskDetails
 import nau.android.taskify.ui.task.TaskItemDesign
@@ -96,7 +94,7 @@ fun MainPage(alarmPermission: AlarmPermission) {
                 val taskId = backStackEntry.arguments?.getLong("taskId")
                 TaskDetails(navController, taskId)
             }
-            composable(MainDestination.Categories.route) { Categories(MainDestination.Categories.route) }
+            composable(MainDestination.Categories.route) { CategoriesList(MainDestination.Categories) }
             composable(MainDestination.EisenhowerMatrix.route) { EisenhowerMatrix(MainDestination.EisenhowerMatrix.route) }
             composable(MainDestination.Date.route) { TaskifyCalendar(MainDestination.Date.route) }
             composable(MainDestination.AppSettings.route) { AppSettings(MainDestination.AppSettings.route) }
@@ -137,20 +135,6 @@ fun FloatingActionButton(onClick: () -> Unit) {
     }) {
         Icon(imageVector = Icons.Filled.Add, contentDescription = "Floating action button")
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TopAppBar(destinations: MainDestination) {
-    TopAppBar(title = {
-        Text(text = destinations.title)
-    })
-}
-
-
-@Composable
-fun Categories(route: String) {
-    Text(text = route)
 }
 
 @Composable

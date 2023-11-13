@@ -14,12 +14,15 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.firstOrNull
 import nau.android.taskify.data.extensions.getNotificationManager
 import nau.android.taskify.data.repository.ITaskRepository
+import nau.android.taskify.ui.alarm.ScheduleNextAlarm
 import nau.android.taskify.ui.alarm.TaskReceiver
+import nau.android.taskify.ui.enums.TaskRepeatInterval
 import nau.android.taskify.ui.model.Task
 import javax.inject.Inject
 
 class TaskifyNotificationImpl @Inject constructor(
     private val taskRepo: ITaskRepository,
+    private val scheduleNextAlarm: ScheduleNextAlarm,
     @ApplicationContext private val context: Context
 ) :
     TaskifyNotification {
@@ -32,8 +35,15 @@ class TaskifyNotificationImpl @Inject constructor(
 
         val task = taskRepo.getTaskById(taskId) ?: return
 
+        if (task.completed){
+            return
+        }
+
         context.getNotificationManager()?.notify(task.id.toInt(), buildNotification(task).build())
 
+        if (task.repeatInterval != TaskRepeatInterval.NONE) {
+            scheduleNextAlarm(task)
+        }
 
     }
 

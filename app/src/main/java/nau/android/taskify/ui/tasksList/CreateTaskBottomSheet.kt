@@ -1,11 +1,14 @@
 package nau.android.taskify.ui.tasksList
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -13,12 +16,17 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,11 +36,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.android.awaitFrame
 import nau.android.taskify.R
 import nau.android.taskify.ui.DateInfo
-import nau.android.taskify.ui.customElements.TaskifyCategorySelectionDropDownMenu
+import nau.android.taskify.ui.category.CategoriesListState
+import nau.android.taskify.ui.category.CategoriesViewModel
 import nau.android.taskify.ui.customElements.TaskifyCreateTaskButton
 import nau.android.taskify.ui.customElements.TaskifyPrioritySelectionDropdownMenu
 import nau.android.taskify.ui.customElements.TaskifyTextField
@@ -167,7 +180,10 @@ fun CreateTaskBottomSheet(
                     if (dateInfo.date != null) {
                         Text(
                             text = dateInfo.date.formatTaskifyDate(
-                                dateInfo.time?.formatToAmPm() ?: "", false
+                                if (dateInfo.timeIncluded) Pair(
+                                    dateInfo.date[Calendar.HOUR_OF_DAY],
+                                    dateInfo.date[Calendar.MINUTE]
+                                ).formatToAmPm() else "", false
                             ),
                             modifier = Modifier.padding(start = 10.dp),
                             style = MaterialTheme.typography.bodyMedium
@@ -199,9 +215,11 @@ fun CreateTaskBottomSheet(
 
             TaskifyCreateTaskButton(isTaskTitleEmpty = taskTitle.value.isEmpty()) {
 
-                dateInfo.time?.also { time ->
-                    dateInfo.date?.set(Calendar.HOUR_OF_DAY, time.first)
-                    dateInfo.date?.set(Calendar.MINUTE, time.second)
+                if (dateInfo.timeIncluded) {
+                    dateInfo.date?.apply {
+                        set(Calendar.HOUR_OF_DAY, get(Calendar.HOUR_OF_DAY))
+                        set(Calendar.MINUTE, get(Calendar.MINUTE))
+                    }
                 }
 
                 createTask(
@@ -209,7 +227,7 @@ fun CreateTaskBottomSheet(
                         name = taskTitle.value,
                         priority = taskPriority.value,
                         dueDate = dateInfo.date,
-                        timeIncluded = dateInfo.time != null,
+                        timeIncluded = dateInfo.timeIncluded,
                         categoryId = currentCategory.value?.id,
                         creationDate = Calendar.getInstance(),
                         repeatInterval = taskRepeatInterval,
@@ -220,5 +238,54 @@ fun CreateTaskBottomSheet(
         }
     }
 
+}
 
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun TaskifyCategorySelectionDropDownMenu(
+    viewModel: CategoriesViewModel = hiltViewModel(),
+    dropDownMenuOpen: Boolean,
+    onDismissRequest: () -> Unit,
+    onChangeCategory: (Category) -> Unit
+) {
+
+    val categories =
+        viewModel.getCategories().collectAsStateWithLifecycle(CategoriesListState.Loading)
+
+    when (val result = categories.value) {
+
+        is CategoriesListState.Success -> {
+            CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                DropdownMenu(
+                    expanded = dropDownMenuOpen,
+                    onDismissRequest = onDismissRequest,
+                    properties = PopupProperties(false),
+                    modifier = Modifier
+                        .heightIn(max = 250.dp)
+                        .fillMaxWidth(0.5f)
+                ) {
+
+                    result.categories.forEach { category ->
+                        DropdownMenuItem(text = {
+                            Text(
+                                text = category.name,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }, onClick = {
+                            onChangeCategory(category)
+                        }, leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.MailOutline,
+                                contentDescription = "category_icon"
+                            )
+                        })
+
+                    }
+                }
+            }
+        }
+        else -> {}
+    }
 }
