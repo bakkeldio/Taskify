@@ -1,2 +1,2 @@
 # Taskify
-Taskify is tasks management application. It is under development.
+Taskify is a tasks management application. It is under development.
