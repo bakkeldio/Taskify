@@ -12,8 +12,16 @@ class TasksLocalDataSource @Inject constructor(private val tasksDatabase: TaskDa
 
     private val taskDao = tasksDatabase.taskDao()
 
-    override fun getAllTasks(): Flow<List<TaskWithCategory>> {
+    override fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>> {
+        return taskDao.getAllTasksWithCategories()
+    }
+
+    override fun getAllTasks(): Flow<List<Task>> {
         return taskDao.getAllTasks()
+    }
+
+    override fun getCategoryTasks(id: Long): Flow<List<Task>> {
+        return taskDao.getCategoryTasks(id)
     }
 
     override fun getTaskByIdWithFlow(id: Long): Flow<Task> {
@@ -30,6 +38,10 @@ class TasksLocalDataSource @Inject constructor(private val tasksDatabase: TaskDa
 
     override suspend fun deleteTask(task: Task) {
         taskDao.deleteTask(task)
+    }
+
+    override suspend fun deleteMultipleTasks(tasks: List<Task>) {
+        taskDao.deleteTasks(tasks)
     }
 
     override suspend fun updateTask(task: Task) {

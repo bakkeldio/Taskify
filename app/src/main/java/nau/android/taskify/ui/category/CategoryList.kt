@@ -1,5 +1,6 @@
 package nau.android.taskify.ui.category
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,7 +18,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,8 +32,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
-import nau.android.taskify.ui.MainDestination
-import nau.android.taskify.ui.customElements.TaskifyMenuIcon
+import nau.android.taskify.ui.Destination
+import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.searchBars.TaskifySearchBar
 
@@ -41,7 +41,8 @@ import nau.android.taskify.ui.searchBars.TaskifySearchBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesList(
-    destination: MainDestination,
+    destination: Destination,
+    navigateToCategoryTasksList: (Long) -> Unit,
     categoriesViewModel: CategoriesViewModel = hiltViewModel()
 ) {
 
@@ -81,7 +82,10 @@ fun CategoriesList(
             })
             when (val result = categoriesState.value) {
                 is CategoriesListState.Success -> {
-                    CategoriesLoaded(categories = result.categories)
+                    CategoriesLoaded(
+                        categories = result.categories,
+                        onCategoryClicked = navigateToCategoryTasksList
+                    )
                 }
 
                 else -> Unit
@@ -93,11 +97,13 @@ fun CategoriesList(
 }
 
 @Composable
-fun CategoriesLoaded(categories: List<Category>) {
+fun CategoriesLoaded(categories: List<Category>, onCategoryClicked: (Long) -> Unit) {
     LazyColumn(
         content = {
-            items(categories) {
-                CategoryItem(category = it)
+            items(categories, key = {
+                it.id
+            }) {
+                CategoryItem(category = it, onCategoryClicked = onCategoryClicked)
             }
         },
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -107,11 +113,14 @@ fun CategoriesLoaded(categories: List<Category>) {
 
 
 @Composable
-fun CategoryItem(category: Category) {
+fun CategoryItem(category: Category, onCategoryClicked: (Long) -> Unit) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .noRippleClickable {
+                onCategoryClicked(category.id)
+            },
         color = MaterialTheme.colorScheme.surface
     ) {
 

@@ -139,9 +139,6 @@ private fun CommonContent(
         mutableIntStateOf(category.color)
     }
 
-    var colorsVisible by remember {
-        mutableStateOf(false)
-    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier

@@ -1,6 +1,8 @@
 package nau.android.taskify.ui.category
 
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,9 +19,8 @@ import javax.inject.Inject
 class CategoriesViewModel @Inject constructor(private val categoryRepo: ICategoryRepository) :
     ViewModel() {
 
-    private val _categoryStateFlow: MutableStateFlow<Category?> =
-        MutableStateFlow(null)
-    val categoryStateFlow: StateFlow<Category?> get() = _categoryStateFlow
+    private val _categoryLiveData: MutableLiveData<Category> = MutableLiveData()
+    val categoryLiveData: LiveData<Category> = _categoryLiveData
 
     fun getCategories() = flow {
 
@@ -44,7 +45,7 @@ class CategoriesViewModel @Inject constructor(private val categoryRepo: ICategor
             return
         }
         viewModelScope.launch {
-            _categoryStateFlow.value = categoryRepo.getCategoryById(id)
+            _categoryLiveData.value = categoryRepo.getCategoryById(id)
         }
     }
 }

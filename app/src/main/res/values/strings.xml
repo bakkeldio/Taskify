@@ -10,7 +10,7 @@
     <string name="task_alarm_permission_dialog_cancel">Not now</string>
 
     <string name="task_notification_permission_dialog_title">Notifications</string>
-    <string name="task_notification_permission_dialog_text">In order to notify the alarms, Alkaa needs the permission to launch notifications. If this permission is not granted, the existing alarms will not work as well.</string>
+    <string name="task_notification_permission_dialog_text">In order to notify the alarms, Taskify needs the permission to launch notifications. If this permission is not granted, the existing alarms will not work as well.</string>
     <string name="task_notification_permission_dialog_confirm">Grant permission</string>
     <string name="task_notification_permission_dialog_cancel">Not now</string>
 
@@ -33,6 +33,19 @@
     <string name="create_button">Create</string>
     <string name="update_button">Update</string>
     <string name="name">Name</string>
+
+    <string name="urgent_and_important">Urgent &amp; Important</string>
+    <string name="not_urgent_and_important">Not Urgent &amp; Important</string>
+    <string name="urgent_and_not_important">Urgent &amp; Unimportant</string>
+    <string name="not_urgent_and_not_important">Not Urgent &amp; Unimportant</string>
+
+    <string name="show_detail">Show details</string>
+    <string name="show_completed">Show completed</string>
+    <string name="sort">Sort</string>
+    <string name="select">Select</string>
+
+    <string name="sort_by">Sort by</string>
+    <string name="group_by">Group by</string>
 
 
 </resources>

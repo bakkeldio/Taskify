@@ -1,35 +1,52 @@
 package nau.android.taskify.ui.customElements
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import nau.android.taskify.R
 import nau.android.taskify.ui.enums.Priority
 import nau.android.taskify.ui.extensions.noRippleClickable
+import nau.android.taskify.ui.tasksList.LocalTasksList
 
 
 @Composable
@@ -101,7 +118,7 @@ fun TaskifyPrioritySelectionDropdownMenu(
         onDismissRequest = {
             closeDropDown()
         },
-        modifier = modifier,
+        modifier = modifier.background(MaterialTheme.colorScheme.surface),
         properties = PopupProperties(focusable = false)
     ) {
         Priority.values().forEach { priority ->
@@ -119,7 +136,7 @@ fun TaskifyPrioritySelectionDropdownMenu(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_flag),
                     contentDescription = "Priority",
-                    tint = MaterialTheme.colorScheme.outline
+                    tint = priority.color
                 )
             })
         }
@@ -127,39 +144,42 @@ fun TaskifyPrioritySelectionDropdownMenu(
 }
 
 @Composable
-fun TaskifyMenuDropDown(
-    displayMenu: Boolean,
-    showDetails: Boolean,
-    showCompleted: Boolean,
-    onShowDetailsChanged: (Boolean) -> Unit,
-    onShowCompletedChanged: (Boolean) -> Unit,
-    displayMenuChanged: (Boolean) -> Unit,
-    onShowSortBottomSheet: () -> Unit
-) {
+fun TaskifyTasksListMenuDropdown() {
+
+    val taskListState = LocalTasksList.current
+
     DropdownMenu(
-        expanded = displayMenu,
-        onDismissRequest = { displayMenuChanged(false) },
+        expanded = taskListState.displayMenu,
+        onDismissRequest = { taskListState.displayMenu = false },
         modifier = Modifier.background(MaterialTheme.colorScheme.surface)
     ) {
-        DropdownMenuItem(text = { Text(text = "Show details") }, onClick = {
-            onShowDetailsChanged(!showDetails)
-        }, trailingIcon = {
-            Checkbox(checked = showDetails, onCheckedChange = null)
-        })
+        DropdownMenuItem(
+            text = { Text(text = stringResource(id = R.string.show_detail)) },
+            onClick = {
+                taskListState.showDetails = !taskListState.showDetails
+                taskListState.displayMenu = false
+            },
+            trailingIcon = {
+                Checkbox(checked = taskListState.showDetails, onCheckedChange = null)
+            })
 
 
-        DropdownMenuItem(text = { Text(text = "Show completed") },
-            onClick = { onShowCompletedChanged(!showCompleted) },
+        DropdownMenuItem(text = { Text(text = stringResource(id = R.string.show_completed)) },
+            onClick = {
+                taskListState.showCompleted = !taskListState.showCompleted
+                taskListState.displayMenu = false
+            },
             trailingIcon = {
                 Checkbox(
-                    checked = showCompleted,
+                    checked = taskListState.showCompleted,
                     onCheckedChange = null,
                     modifier = Modifier.padding(0.dp)
                 )
             })
 
-        DropdownMenuItem(text = { Text(text = "Sort") }, onClick = {
-            onShowSortBottomSheet()
+        DropdownMenuItem(text = { Text(text = stringResource(id = R.string.sort)) }, onClick = {
+            taskListState.showSortTasksBottomSheet = true
+            taskListState.displayMenu = false
         }, leadingIcon = {
             Icon(
                 painter = painterResource(id = R.drawable.ic_sort),
@@ -167,8 +187,11 @@ fun TaskifyMenuDropDown(
             )
         })
 
-        DropdownMenuItem(text = { Text(text = "Select") },
-            onClick = { /*TODO*/ },
+        DropdownMenuItem(text = { Text(text = stringResource(id = R.string.select)) },
+            onClick = {
+                taskListState.inMultiSelection = true
+                taskListState.displayMenu = false
+            },
             leadingIcon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_selection),
@@ -191,4 +214,86 @@ fun TaskifyMenuIcon(displayMenu: Boolean, onDisplayMenuChanged: (Boolean) -> Uni
                 onDisplayMenuChanged(!displayMenu)
             })
 
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionModeTopAppBar(
+    categoryName: String = "All",
+    selectedTasks: Int,
+    hideMultiSelection: () -> Unit
+) {
+
+    CenterAlignedTopAppBar(
+        title = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = categoryName)
+                Text(text = "$selectedTasks Selected", style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = {
+                hideMultiSelection()
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_cross),
+                    contentDescription = "Exit from multi-selection"
+                )
+            }
+        },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+    )
+}
+
+@Composable
+fun TaskifyCustomCheckBox(
+    checked: Boolean,
+    size: Int = 13,
+    borderColor: Color,
+    onCheckChanged: (Boolean) -> Unit
+) {
+
+    var checkedState by remember {
+        mutableStateOf(checked)
+    }
+
+    Box(
+        modifier = Modifier
+            .size(size = size.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(
+                if (checkedState) MaterialTheme.colorScheme.outline else Color.Transparent,
+                RoundedCornerShape(3.dp)
+            )
+            .border(
+                width = 1.dp,
+                if (checkedState) MaterialTheme.colorScheme.outline else borderColor,
+                RoundedCornerShape(3.dp)
+            )
+            .noRippleClickable {
+                checkedState = !checkedState
+                onCheckChanged(checkedState)
+            }, contentAlignment = Alignment.Center
+    ) {
+        if (checkedState) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.padding(1.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun TaskifyArrowBack(onClick: () -> Unit) {
+    IconButton(onClick = {
+        onClick()
+    }) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+    }
 }

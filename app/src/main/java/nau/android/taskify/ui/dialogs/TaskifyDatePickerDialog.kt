@@ -102,6 +102,7 @@ fun TaskifyDatePickerDialog(
                 newDateWithTime.set(Calendar.HOUR_OF_DAY, hourMinute.first)
                 newDateWithTime.set(Calendar.MINUTE, hourMinute.second)
                 selectedDate = newDateWithTime
+                timeIncluded = true
             })
     }
 
@@ -512,7 +513,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
 
 
 @Composable
-private fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> Unit) {
+fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> Unit) {
     // Calculate the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ...)
     val firstDay = selectedDate.clone() as Calendar
     firstDay.set(Calendar.DAY_OF_MONTH, 1)

@@ -6,7 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -16,9 +21,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import nau.android.taskify.ui.enums.TaskRepeatInterval
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -44,12 +54,10 @@ fun Pair<Date, Date>.getDateDifferenceInDays(): Long {
 }
 
 fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier = composed {
-    clickable(indication = null,
-        interactionSource = remember { MutableInteractionSource() }) {
+    clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) {
         onClick()
     }
 }
-
 
 
 @Composable
@@ -72,10 +80,7 @@ fun Calendar.formatTaskifyDate(time: String = "", showDays: Boolean = true): Str
 
     val monthFormatter = SimpleDateFormat("MMM dd", Locale.getDefault())
     val yearFormatter = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
-    return if (currentCalendar[Calendar.YEAR] == this[Calendar.YEAR] &&
-        currentCalendar[Calendar.MONTH] == this[Calendar.MONTH]
-        && currentCalendar[Calendar.DAY_OF_MONTH] == this[Calendar.DAY_OF_MONTH]
-    ) {
+    return if (currentCalendar[Calendar.YEAR] == this[Calendar.YEAR] && currentCalendar[Calendar.MONTH] == this[Calendar.MONTH] && currentCalendar[Calendar.DAY_OF_MONTH] == this[Calendar.DAY_OF_MONTH]) {
         "Today" + if (time.isNotEmpty()) ", $time" else ""
     } else if (this[Calendar.YEAR] != currentCalendar[Calendar.YEAR]) {
         yearFormatter.format(this.time) + if (time.isNotEmpty()) ", $time" else ""
@@ -90,8 +95,7 @@ fun Calendar.formatTaskifyDate(time: String = "", showDays: Boolean = true): Str
                 if (currentCalendar.after(this)) {
                     d + ", ${
                         Pair(
-                            currentCalendar.time,
-                            this.time
+                            currentCalendar.time, this.time
                         ).getDateDifferenceInDays()
                     }d overdue"
                 } else {
@@ -103,4 +107,71 @@ fun Calendar.formatTaskifyDate(time: String = "", showDays: Boolean = true): Str
     }
 }
 
+@Composable
+fun Calendar.applyColorForDateTime(date: String): AnnotatedString {
+    val currentDate = Calendar.getInstance()
+    return buildAnnotatedString {
+        withStyle(
+            SpanStyle(
+                color = if (this@applyColorForDateTime[Calendar.YEAR] == currentDate[Calendar.YEAR] && this@applyColorForDateTime[Calendar.MONTH] == currentDate[Calendar.MONTH] && this@applyColorForDateTime[Calendar.DAY_OF_MONTH] == currentDate[Calendar.DAY_OF_MONTH]) MaterialTheme.colorScheme.primary else if (currentDate.before(
+                        this@applyColorForDateTime
+                    )
+                ) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+        ) {
+            append(date)
+        }
+    }
+}
+
+fun TaskRepeatInterval.updateDate(date: Calendar) {
+    when (this) {
+        TaskRepeatInterval.HOURLY -> date.apply {
+            add(Calendar.HOUR_OF_DAY, 1)
+        }
+
+        TaskRepeatInterval.DAILY -> date.apply {
+            add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        TaskRepeatInterval.WEEKLY -> date.apply {
+            add(Calendar.WEEK_OF_MONTH, 1)
+        }
+
+        TaskRepeatInterval.MONTHLY -> date.apply {
+            add(Calendar.MONTH, 1)
+        }
+
+        TaskRepeatInterval.YEARLY -> date.apply {
+            add(Calendar.YEAR, 1)
+        }
+
+        TaskRepeatInterval.NONE -> Unit
+    }
+}
+
+
 fun Context.toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG)
+
+fun Calendar.isItToday(): Boolean {
+    val currentDate = Calendar.getInstance()
+    return get(Calendar.YEAR) == currentDate[Calendar.YEAR] && get(Calendar.MONTH) == currentDate[Calendar.MONTH] &&
+            get(Calendar.DAY_OF_MONTH) == currentDate[Calendar.DAY_OF_MONTH]
+}
+
+fun Calendar.isItTomorrow(): Boolean {
+    val currentDate = Calendar.getInstance()
+    return get(Calendar.YEAR) == currentDate[Calendar.YEAR] && get(Calendar.MONTH) == currentDate[Calendar.MONTH] &&
+            get(Calendar.DAY_OF_MONTH) + 1 == currentDate[Calendar.DAY_OF_MONTH]
+}
+
+fun Calendar.isItNextSevenDays(): Boolean {
+    val currentDate = Calendar.getInstance()
+    return get(Calendar.YEAR) == currentDate[Calendar.YEAR] && get(Calendar.MONTH) == currentDate[Calendar.MONTH] &&
+            get(Calendar.DAY_OF_MONTH) + 7 == currentDate[Calendar.DAY_OF_MONTH]
+}
+
+fun Calendar.isItOverdue(): Boolean {
+    val currentDate = Calendar.getInstance()
+    return before(currentDate)
+}

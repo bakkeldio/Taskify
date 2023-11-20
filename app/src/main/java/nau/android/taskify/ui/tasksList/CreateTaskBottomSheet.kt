@@ -51,6 +51,7 @@ import nau.android.taskify.ui.customElements.TaskifyPrioritySelectionDropdownMen
 import nau.android.taskify.ui.customElements.TaskifyTextField
 import nau.android.taskify.ui.extensions.formatTaskifyDate
 import nau.android.taskify.ui.extensions.formatToAmPm
+import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
 import java.util.Calendar
@@ -63,8 +64,9 @@ import java.util.Calendar
 fun CreateTaskBottomSheet(
     dateInfo: DateInfo,
     task: Task,
+    category: Category?,
     onDismissBottomSheet: () -> Unit,
-    openDatePickerDialog: (Task, DateInfo) -> Unit,
+    openDatePickerDialog: (Task, Category?, DateInfo) -> Unit,
     createTask: (Task) -> Unit
 ) {
 
@@ -97,7 +99,7 @@ fun CreateTaskBottomSheet(
     }
 
     val currentCategory = remember {
-        mutableStateOf<Category?>(null)
+        mutableStateOf(category)
     }
 
 
@@ -154,43 +156,38 @@ fun CreateTaskBottomSheet(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_date),
-                        contentDescription = "Choosing date",
-                        modifier = Modifier.clickable {
-                            openDatePickerDialog(
-                                Task(
-                                    name = taskTitle.value,
-                                    priority = taskPriority.value,
-                                    categoryId = currentCategory.value?.id,
-                                    repeatInterval = taskRepeatInterval,
-                                    reminders = reminders.value
-                                ), dateInfo
-                            )
-                        },
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-
-
-                    if (dateInfo.date != null) {
-                        Text(
-                            text = dateInfo.date.formatTaskifyDate(
-                                if (dateInfo.timeIncluded) Pair(
-                                    dateInfo.date[Calendar.HOUR_OF_DAY],
-                                    dateInfo.date[Calendar.MINUTE]
-                                ).formatToAmPm() else "", false
-                            ),
-                            modifier = Modifier.padding(start = 10.dp),
-                            style = MaterialTheme.typography.bodyMedium
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_date),
+                    contentDescription = "Choosing date",
+                    modifier = Modifier.clickable {
+                        openDatePickerDialog(
+                            Task(
+                                name = taskTitle.value,
+                                priority = taskPriority.value,
+                                categoryId = currentCategory.value?.id,
+                                repeatInterval = taskRepeatInterval,
+                                reminders = reminders.value
+                            ), currentCategory.value, dateInfo
                         )
-                    }
-                }
+                    },
+                    tint = MaterialTheme.colorScheme.primary
+                )
 
+
+                if (dateInfo.date != null) {
+                    Text(
+                        text = dateInfo.date.formatTaskifyDate(
+                            if (dateInfo.timeIncluded) Pair(
+                                dateInfo.date[Calendar.HOUR_OF_DAY],
+                                dateInfo.date[Calendar.MINUTE]
+                            ).formatToAmPm() else "", false
+                        ),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
 
                 Icon(
                     painter = painterResource(id = R.drawable.ic_flag),
@@ -198,7 +195,7 @@ fun CreateTaskBottomSheet(
                     modifier = Modifier.clickable {
                         priorityDropDownOpen.value = true
                     },
-                    tint = MaterialTheme.colorScheme.outline
+                    tint = taskPriority.value.color
                 )
 
                 Text(text = currentCategory.value?.name ?: "No category",
@@ -206,7 +203,7 @@ fun CreateTaskBottomSheet(
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp)
                         )
-                        .clickable(role = Role.Button) {
+                        .noRippleClickable {
                             categoryDropDownOpen.value = true
                         }
                         .padding(8.dp))
@@ -264,6 +261,7 @@ fun TaskifyCategorySelectionDropDownMenu(
                     modifier = Modifier
                         .heightIn(max = 250.dp)
                         .fillMaxWidth(0.5f)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
 
                     result.categories.forEach { category ->
@@ -277,7 +275,7 @@ fun TaskifyCategorySelectionDropDownMenu(
                             onChangeCategory(category)
                         }, leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.MailOutline,
+                                painter = painterResource(id = R.drawable.ic_category),
                                 contentDescription = "category_icon"
                             )
                         })
@@ -286,6 +284,7 @@ fun TaskifyCategorySelectionDropDownMenu(
                 }
             }
         }
+
         else -> {}
     }
 }

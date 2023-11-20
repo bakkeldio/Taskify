@@ -13,6 +13,7 @@ import nau.android.taskify.data.repository.ITaskRepository
 import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.alarm.CompleteTask
+import nau.android.taskify.ui.alarm.UnCompleteTask
 import nau.android.taskify.ui.category.TaskCategoryState
 import nau.android.taskify.ui.enums.Priority
 import nau.android.taskify.ui.extensions.Debouncer
@@ -24,6 +25,7 @@ class TaskViewModel @Inject constructor(
     private val categoryRepo: ICategoryRepository,
     private val alarmScheduler: AlarmScheduler,
     private val completeTask: CompleteTask,
+    private val unCompleteTask: UnCompleteTask,
     private val debouncer: Debouncer
 ) : ViewModel() {
 
@@ -51,7 +53,7 @@ class TaskViewModel @Inject constructor(
     fun getTaskCategory(taskId: Long?) {
         taskId ?: return
         viewModelScope.launch {
-            val task = taskRepo.getTaskByIdFlow(taskId).firstOrNull() ?: return@launch
+            val task = taskRepo.getTaskById(taskId) ?: return@launch
             val categoryId = task.categoryId
             if (categoryId == null) {
                 categoryMutableState.value = TaskCategoryState.Empty
@@ -68,7 +70,7 @@ class TaskViewModel @Inject constructor(
         val dueDate = dateInfo.date
         val taskResult = taskDetailsMutableStateFlow.value as? TaskDetailsState.Success ?: return
         viewModelScope.launch {
-            taskRepo.updateTask(taskResult.task.copy(dueDate = dueDate))
+            taskRepo.updateTask(taskResult.task.copy(dueDate = dueDate, timeIncluded = dateInfo.timeIncluded))
             if (dueDate != null && dateInfo.timeIncluded) {
                 alarmScheduler.scheduleTaskAlarm(taskResult.task.id, dueDate.timeInMillis)
             } else {
@@ -81,6 +83,13 @@ class TaskViewModel @Inject constructor(
         val result = taskDetailsStateFlow.value as? TaskDetailsState.Success ?: return
         viewModelScope.launch {
             completeTask(result.task.id)
+        }
+    }
+
+    fun unCompleteTask() {
+        val taskState = taskDetailsStateFlow.value as? TaskDetailsState.Success ?: return
+        viewModelScope.launch {
+            unCompleteTask(taskState.task)
         }
     }
 
@@ -102,6 +111,7 @@ class TaskViewModel @Inject constructor(
         val result = taskDetailsStateFlow.value as? TaskDetailsState.Success ?: return
         viewModelScope.launch {
             taskRepo.updateTask(result.task.copy(categoryId = categoryId))
+            getTaskCategory(result.task.id)
         }
     }
 

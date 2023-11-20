@@ -6,7 +6,24 @@ import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.AlarmManagerCompat
 import androidx.core.app.NotificationManagerCompat
+import nau.android.taskify.ui.enums.Priority
+import nau.android.taskify.ui.extensions.isItOverdue
+import nau.android.taskify.ui.extensions.isItToday
+import nau.android.taskify.ui.extensions.isItTomorrow
+import nau.android.taskify.ui.model.Task
 import java.util.Calendar
+
+
+fun Task.isItImportant(): Boolean {
+    return (priority == Priority.HIGH) || (priority == Priority.MEDIUM)
+}
+
+fun Task.isItUrgent(): Boolean {
+    if (dueDate == null) {
+        return false
+    }
+    return dueDate.isItOverdue() || dueDate.isItToday() || dueDate.isItTomorrow()
+}
 
 fun Context.getAlarmManager() = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
 

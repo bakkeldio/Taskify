@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.map
 import nau.android.taskify.data.dataSource.ITasksLocalDataSource
 import nau.android.taskify.data.model.mapper.TaskMapper
 import nau.android.taskify.data.model.mapper.TaskWithCategoryMapper
-import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.model.Task
 import javax.inject.Inject
 import nau.android.taskify.ui.model.TaskWithCategory as TaskWithCategoryUI
@@ -15,10 +14,26 @@ class TaskRepository @Inject constructor(
     private val taskWithCategoryMapper: TaskWithCategoryMapper,
     private val taskMapper: TaskMapper
 ) : ITaskRepository {
-    override fun getAllTasks(): Flow<List<TaskWithCategoryUI>> {
-        return localDataSource.getAllTasks().map { taskWithCategory ->
+    override fun getAllTasksWithCategories(): Flow<List<TaskWithCategoryUI>> {
+        return localDataSource.getAllTasksWithCategories().map { taskWithCategory ->
             taskWithCategory.map {
                 taskWithCategoryMapper.toUI(it)
+            }
+        }
+    }
+
+    override fun getAllTasks(): Flow<List<Task>> {
+        return localDataSource.getAllTasks().map {
+            it.map { task ->
+                taskMapper.toUI(task)
+            }
+        }
+    }
+
+    override fun getCategoryTasks(categoryId: Long): Flow<List<Task>> {
+        return localDataSource.getCategoryTasks(categoryId).map {
+            it.map { task ->
+                taskMapper.toUI(task)
             }
         }
     }
@@ -29,6 +44,12 @@ class TaskRepository @Inject constructor(
 
     override suspend fun deleteTask(task: Task) {
         localDataSource.deleteTask(taskMapper.toRepo(task))
+    }
+
+    override suspend fun deleteMultipleTasks(tasks: List<Task>) {
+        localDataSource.deleteMultipleTasks(tasks.map {
+            taskMapper.toRepo(it)
+        })
     }
 
     override suspend fun createTask(task: Task): Long {

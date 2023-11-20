@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import nau.android.taskify.data.model.Task
+import nau.android.taskify.data.model.TaskPriority
 import nau.android.taskify.data.model.TaskWithCategory
 
 
@@ -25,8 +26,17 @@ interface TaskDao {
     @Delete
     suspend fun deleteTask(task: Task)
 
-    @Query("select * from task left join category on task.task_id = category_id")
-    fun getAllTasks(): Flow<List<TaskWithCategory>>
+    @Delete
+    suspend fun deleteTasks(tasks: List<Task>)
+
+    @Query("select * from task left join category on task.task_id = category_id where not task_is_completed")
+    fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+
+    @Query("select * from task where not task_is_completed")
+    fun getAllTasks(): Flow<List<Task>>
+
+    @Query("select * from task where task_category_id=:categoryId")
+    fun getCategoryTasks(categoryId: Long): Flow<List<Task>>
 
     @Query("select * from task where task_id=:id")
     fun getTaskByIdWithFlow(id: Long): Flow<Task>

@@ -2,8 +2,6 @@ package nau.android.taskify.ui.tasksList
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -11,16 +9,19 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import nau.android.taskify.R
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SortBottomSheet(
     groupingType: GroupingType,
@@ -30,22 +31,22 @@ fun SortBottomSheet(
     dismissRequest: () -> Unit
 ) {
 
-
-    val modalBottomSheetState = rememberModalBottomSheetState()
+    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
-        modifier = Modifier.fillMaxHeight(0.35f),
         onDismissRequest = { dismissRequest() },
         sheetState = modalBottomSheetState
     ) {
 
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 15.dp)
+                .padding(start = 15.dp, end = 15.dp, bottom = 15.dp)
         ) {
-            Text(text = "Group by")
+            Text(
+                text = stringResource(id = R.string.group_by),
+                fontWeight = FontWeight.Medium
+            )
 
             LazyVerticalGrid(columns = GridCells.Fixed(3), content = {
                 items(GroupingType.values()) { type ->
@@ -61,7 +62,11 @@ fun SortBottomSheet(
                 }
             }, horizontalArrangement = Arrangement.spacedBy(25.dp))
 
-            Text(text = "Sort by", modifier = Modifier.padding(top = 15.dp))
+            Text(
+                text = stringResource(id = R.string.sort_by),
+                modifier = Modifier.padding(top = 15.dp),
+                fontWeight = FontWeight.Medium
+            )
 
             LazyVerticalGrid(columns = GridCells.Fixed(3), content = {
                 items(SortingType.values()) { type ->

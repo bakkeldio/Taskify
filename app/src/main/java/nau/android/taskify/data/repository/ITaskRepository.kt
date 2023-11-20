@@ -6,11 +6,17 @@ import nau.android.taskify.ui.model.TaskWithCategory
 
 interface ITaskRepository {
 
-    fun getAllTasks(): Flow<List<TaskWithCategory>>
+    fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+
+    fun getAllTasks(): Flow<List<Task>>
+
+    fun getCategoryTasks(categoryId: Long): Flow<List<Task>>
 
     suspend fun updateTask(task: Task)
 
     suspend fun deleteTask(task: Task)
+
+    suspend fun deleteMultipleTasks(tasks: List<Task>)
 
     suspend fun createTask(task: Task): Long
 
