@@ -3,6 +3,7 @@ package nau.android.taskify.data.repository
 import kotlinx.coroutines.flow.Flow
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
+import java.util.Calendar
 
 interface ITaskRepository {
 
@@ -11,6 +12,8 @@ interface ITaskRepository {
     fun getAllTasks(): Flow<List<Task>>
 
     fun getCategoryTasks(categoryId: Long): Flow<List<Task>>
+
+    fun getTasksByDate(date: Calendar): Flow<List<Task>>
 
     suspend fun updateTask(task: Task)
 

@@ -1,4 +1,4 @@
-package nau.android.taskify.data.module
+package nau.android.taskify.data.di
 
 import dagger.Binds
 import dagger.Module

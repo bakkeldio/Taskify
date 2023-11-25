@@ -47,5 +47,34 @@
     <string name="sort_by">Sort by</string>
     <string name="group_by">Group by</string>
 
+    <string name="no_tasks_message">No tasks on the day.\nClick + to create your task.</string>
 
+    <string name="settings">Settings</string>
+    <string name="appearance">Appearance</string>
+    <string name="sounds_and_notifications">Sounds &amp; Notifications</string>
+    <string name="about">About</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="avatar">Avatar</string>
+    <string name="taskify_title">Taskify</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="sign_in_with_email_password">Sign in with email</string>
+    <string name="google_icon">Google icon</string>
+    <string name="email_icon">Email icon</string>
+    <string name="arrow_right">Arrow right</string>
+
+    <string name="sign_in">Sign in</string>
+    <string name="sign_up">Sign up</string>
+    <string name="create_account">Create account</string>
+    <string name="confirm_password_error">Passwords should be identical</string>
+    <string name="forgot_password">Forgot password ?</string>
+    <string name="send">Send</string>
+    <string name="resend">Resend</string>
+    <string name="email_sent">Email sent</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm password</string>
+    <string name="email_content_error">It is not the valid email</string>
+    <string name="password_content_error_message">Password should consist of at least:\n- 8 characters\n- one upper case letter\n- one lower case letter\n- one special symbol</string>
+    <string name="email_sent_description">If your provided email exists you will receive there a password reset link</string>
+    <string name="write_email_to_send_password_reset_link">Email to reset password</string>
 </resources>

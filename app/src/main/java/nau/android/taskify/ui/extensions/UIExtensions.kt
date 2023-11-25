@@ -6,17 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -25,9 +18,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import nau.android.taskify.ui.enums.TaskRepeatInterval
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -105,6 +95,36 @@ fun Calendar.formatTaskifyDate(time: String = "", showDays: Boolean = true): Str
             d
         }
     }
+}
+
+fun Calendar.formatDateInPattern(pattern: String): String {
+    val dateFormat = SimpleDateFormat(pattern, Locale.getDefault())
+    return dateFormat.format(time)
+}
+
+fun Calendar.minusMonth(): Calendar {
+    val clone = this.clone() as Calendar
+    clone.add(Calendar.MONTH, -1)
+    return clone
+}
+
+fun Calendar.addMonth(): Calendar {
+    val clone = this.clone() as Calendar
+    clone.add(Calendar.MONTH, 1)
+    return clone
+}
+
+
+fun Calendar.addWeek(): Calendar {
+    val clone = this.clone() as Calendar
+    clone.add(Calendar.DAY_OF_MONTH, 7)
+    return clone
+}
+
+fun Calendar.minusWeek(): Calendar {
+    val clone = this.clone() as Calendar
+    clone.add(Calendar.DAY_OF_MONTH, -7)
+    return clone
 }
 
 @Composable

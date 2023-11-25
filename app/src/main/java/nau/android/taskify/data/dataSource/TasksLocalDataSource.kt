@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import nau.android.taskify.data.database.TaskDatabase
 import nau.android.taskify.data.model.Task
 import nau.android.taskify.data.model.TaskWithCategory
+import java.util.Calendar
 import javax.inject.Inject
 
 
@@ -14,6 +15,10 @@ class TasksLocalDataSource @Inject constructor(private val tasksDatabase: TaskDa
 
     override fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>> {
         return taskDao.getAllTasksWithCategories()
+    }
+
+    override fun getTasksByDate(startDateInMillis: Long, endDateInMillis: Long): Flow<List<Task>> {
+        return taskDao.getTasksByDate(startDateInMillis, endDateInMillis)
     }
 
     override fun getAllTasks(): Flow<List<Task>> {

@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
     id 'com.google.dagger.hilt.android'
+    id 'com.google.gms.google-services'
 }
 
 kapt {
@@ -86,9 +87,14 @@ dependencies {
 
     implementation "androidx.navigation:navigation-compose:$nav_version"
 
-    implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
+    implementation "androidx.constraintlayout:constraintlayout-compose:1.1.0-alpha13"
 
     implementation "com.google.code.gson:gson:2.9.0"
+
+    //Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.6.0')
+
+    implementation 'com.google.firebase:firebase-auth'
 
     //coroutine support for viewmodel
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2"

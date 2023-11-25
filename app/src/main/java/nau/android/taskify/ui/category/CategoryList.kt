@@ -1,6 +1,5 @@
 package nau.android.taskify.ui.category
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
-import nau.android.taskify.ui.Destination
+import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.searchBars.TaskifySearchBar
@@ -41,7 +40,7 @@ import nau.android.taskify.ui.searchBars.TaskifySearchBar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoriesList(
-    destination: Destination,
+    mainDestination: MainDestination,
     navigateToCategoryTasksList: (Long) -> Unit,
     categoriesViewModel: CategoriesViewModel = hiltViewModel()
 ) {
@@ -57,7 +56,7 @@ fun CategoriesList(
     Scaffold(topBar = {
         TopAppBar(
             title = {
-                Text(text = destination.title)
+                Text(text = mainDestination.title)
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
         )

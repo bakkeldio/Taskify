@@ -3,14 +3,14 @@ package nau.android.taskify.ui
 
 import nau.android.taskify.R
 
-sealed class Destination(
+sealed class MainDestination(
     val title: String = "",
     val route: String,
     val filledIcon: Int,
     val outlinedIcon: Int
 ) {
     object ListOfTasks :
-        Destination(
+        MainDestination(
             "Tasks",
             "list_of_tasks",
             R.drawable.ic_tasks_list_filled,
@@ -18,28 +18,28 @@ sealed class Destination(
         )
 
     object Categories :
-        Destination(
+        MainDestination(
             "Categories",
             "categories",
             R.drawable.ic_category_filled,
             R.drawable.ic_category_outlined
         )
 
-    object EisenhowerMatrix : Destination(
+    object EisenhowerMatrix : MainDestination(
         "Eisenhower Matrix",
         "eisenhower_matrix",
         R.drawable.ic_eisenhower_matrix,
         R.drawable.ic_eisenhower_outlined
     )
 
-    object Calendar : Destination(
+    object Calendar : MainDestination(
         "Calendar",
         "Calendar",
         R.drawable.ic_date_filled,
         R.drawable.ic_date_outlined
     )
 
-    object AppSettings : Destination(
+    object AppSettings : MainDestination(
         "Application Settings", "App",
         R.drawable.ic_settings_filled,
         R.drawable.ic_app_settings
@@ -50,6 +50,18 @@ sealed class Destination(
         const val CategoryTasksList = "category_tasks_list"
         const val MatrixTasksList = "matrix_tasks_list"
     }
+}
+
+sealed class LoginDestination(val route: String) {
+    object WelcomeScreen : LoginDestination("login_screen")
+    object SignInScreen : LoginDestination("sign_in_screen")
+    object SignUpScreen : LoginDestination("sign_up_screen")
+
+    object PasswordRecoveryScreen: LoginDestination("password_recovery")
+
+    object EmailVerificationScreen: LoginDestination("email_verification")
+
+
 }
 
 

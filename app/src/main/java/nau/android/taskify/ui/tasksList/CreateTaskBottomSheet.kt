@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -65,6 +66,7 @@ fun CreateTaskBottomSheet(
     dateInfo: DateInfo,
     task: Task,
     category: Category?,
+    sheetState: SheetState,
     onDismissBottomSheet: () -> Unit,
     openDatePickerDialog: (Task, Category?, DateInfo) -> Unit,
     createTask: (Task) -> Unit
@@ -134,7 +136,9 @@ fun CreateTaskBottomSheet(
     ModalBottomSheet(
         onDismissRequest = {
             onDismissBottomSheet()
-        }, windowInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
+        },
+        windowInsets = WindowInsets.ime.union(WindowInsets.navigationBars),
+        sheetState = sheetState
     ) {
 
         TaskifyTextField(

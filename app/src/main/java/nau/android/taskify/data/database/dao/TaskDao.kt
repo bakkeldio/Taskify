@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import nau.android.taskify.data.model.Task
 import nau.android.taskify.data.model.TaskPriority
 import nau.android.taskify.data.model.TaskWithCategory
+import java.util.Calendar
 
 
 @Dao
@@ -37,6 +38,9 @@ interface TaskDao {
 
     @Query("select * from task where task_category_id=:categoryId")
     fun getCategoryTasks(categoryId: Long): Flow<List<Task>>
+
+    @Query("select * from task where task_due_date >= :startDateInMillis AND task_due_date < :endDateInMillis")
+    fun getTasksByDate(startDateInMillis: Long, endDateInMillis: Long): Flow<List<Task>>
 
     @Query("select * from task where task_id=:id")
     fun getTaskByIdWithFlow(id: Long): Flow<Task>

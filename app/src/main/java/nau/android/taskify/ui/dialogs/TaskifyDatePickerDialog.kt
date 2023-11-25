@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,11 +42,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
@@ -55,12 +57,12 @@ import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.enums.OptionalDate
 import nau.android.taskify.ui.enums.ReminderType
 import nau.android.taskify.ui.enums.TaskRepeatInterval
+import nau.android.taskify.ui.extensions.addMonth
+import nau.android.taskify.ui.extensions.formatDateInPattern
 import nau.android.taskify.ui.extensions.isSameDay
+import nau.android.taskify.ui.extensions.minusMonth
 import nau.android.taskify.ui.extensions.noRippleClickable
-import nau.android.taskify.ui.model.Task
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +208,7 @@ private fun MainDatePickerContent(
     clearRepeatInterval: () -> Unit,
     clearDate: () -> Unit
 ) {
-    Column {
+    Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -474,8 +476,6 @@ private fun OptionalDateSelection(
 
 @Composable
 private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> Unit) {
-    val dateFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-    val formattedDate = dateFormat.format(currentMonth.time)
 
     Row(modifier = Modifier
         .fillMaxWidth()
@@ -484,9 +484,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
         verticalAlignment = Alignment.CenterVertically,
         content = {
             IconButton(onClick = {
-                val previousMonth = currentMonth.clone() as Calendar
-                previousMonth.add(Calendar.MONTH, -1)
-                onMonthChange(previousMonth)
+                currentMonth.minusMonth()
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -495,13 +493,12 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
             }
 
             Text(
-                text = formattedDate, style = MaterialTheme.typography.titleMedium
+                text = currentMonth.formatDateInPattern("MMMM yyyy"),
+                style = MaterialTheme.typography.titleMedium
             )
 
             IconButton(onClick = {
-                val nextMonth = currentMonth.clone() as Calendar
-                nextMonth.add(Calendar.MONTH, 1)
-                onMonthChange(nextMonth)
+                currentMonth.addMonth()
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -511,60 +508,121 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
         })
 }
 
-
 @Composable
-fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> Unit) {
-    // Calculate the day of the week for the first day of the month (0 = Sunday, 1 = Monday, ...)
-    val firstDay = selectedDate.clone() as Calendar
-    firstDay.set(Calendar.DAY_OF_MONTH, 1)
-    val firstDayOfWeek = firstDay.get(Calendar.DAY_OF_WEEK)
-
-    // Determine the day to start with based on the selected day of the week
-    val dayOffset = (firstDayOfWeek - Calendar.MONDAY + 7) % 7
-
-    // Calculate the number of days in the month
-    val daysInMonth = selectedDate.getActualMaximum(Calendar.DAY_OF_MONTH) + 1
-
-    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+fun WeeklyCalendar(selectedDate: Calendar, onSelectDate: (Calendar) -> Unit) {
 
     val isCurrentMonth: (Calendar) -> Boolean = { date ->
         date.get(Calendar.MONTH) == selectedDate.get(Calendar.MONTH)
     }
+    val dayOfTheWeek = selectedDate.get(Calendar.DAY_OF_WEEK)
+
+    val offset = dayOfTheWeek - Calendar.SUNDAY
+
+    val clonedDate = selectedDate.clone() as Calendar
+
+    clonedDate[Calendar.DAY_OF_MONTH] -= (offset + 1)
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(7),
+        content = {
+            WeekNames()
+            items(7) {index ->
+                val currentDate = clonedDate.clone() as Calendar
+                currentDate.add(Calendar.DAY_OF_MONTH, index + 1)
+                DayCell(
+                    date = currentDate,
+                    isSelected = Pair(selectedDate, currentDate).isSameDay(),
+                    isCurrentMonth = isCurrentMonth(currentDate),
+                    onDateSelected = onSelectDate)
+                //clonedDate.add(Calendar.DAY_OF_MONTH, 1)
+            }
+        },
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = Modifier.padding(start = 9.dp, end = 9.dp)
+    )
+}
+
+@Composable
+fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> Unit) {
+    val firstDay = selectedDate.clone() as Calendar
+    firstDay.set(Calendar.DAY_OF_MONTH, 1)
+    val firstDayOfWeek = firstDay.get(Calendar.DAY_OF_WEEK)
+    val dayOffset = firstDayOfWeek - Calendar.SUNDAY
+    val daysInMonth = selectedDate.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val isCurrentMonth: (Calendar) -> Boolean = { date ->
+        date.get(Calendar.MONTH) == selectedDate.get(Calendar.MONTH)
+    }
+    val daysInPreviousMonth = selectedDate.clone() as Calendar
+    daysInPreviousMonth.add(Calendar.MONTH, -1)
+    val daysInPreviousMonthCount = daysInPreviousMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(7),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 9.dp, end = 9.dp)
+            .padding(start = 9.dp, end = 9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        // Display day names at the top
 
-        for (dayName in dayNames) {
+        WeekNames()
+
+        //Cells for the days of the previous month
+        for (i in 1..dayOffset) {
+            val day = daysInPreviousMonthCount - dayOffset + i
+            val date = daysInPreviousMonth.clone() as Calendar
+            date.set(Calendar.DAY_OF_MONTH, day)
             item {
-                Text(
-                    text = dayName, style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    ), textAlign = TextAlign.Center, modifier = Modifier.padding(6.dp)
+                DayCell(
+                    date = date,
+                    isSelected = false,
+                    isCurrentMonth = false,
+                    onDateSelected = onDateSelected
                 )
             }
         }
 
-        // Skip empty cells before the first day of the month
-        repeat(dayOffset) {
-            item { /* Empty cell */ }
-        }
-
-        // Display date cells for the month
-        items(daysInMonth) { day ->
+        //Cells for the days of the current month
+        for (day in 1..daysInMonth) {
             val currentDate = selectedDate.clone() as Calendar
             currentDate.set(Calendar.DAY_OF_MONTH, day)
-
             val isSelected = Pair(selectedDate, currentDate).isSameDay()
             if (isCurrentMonth(currentDate)) {
-                DayCell(date = currentDate, isSelected = isSelected, onDateSelected = {
-                    onDateSelected(it)
-                })
+                item {
+                    DayCell(
+                        date = currentDate,
+                        isSelected = isSelected,
+                        isCurrentMonth = true,
+                        onDateSelected = onDateSelected)
+                }
             }
+        }
+
+        // Cells for the days of the upcoming month
+        for (i in 1..(42 - dayOffset - daysInMonth) % 7) {
+            val date = selectedDate.clone() as Calendar
+            date[Calendar.MONTH] += 1
+            date.set(Calendar.DAY_OF_MONTH, i)
+            item {
+                DayCell(
+                    date = date,
+                    isSelected = false,
+                    onDateSelected = onDateSelected,
+                    isCurrentMonth = false
+                )
+            }
+        }
+    }
+}
+
+fun LazyGridScope.WeekNames() {
+    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    for (dayName in dayNames) {
+        item {
+            Text(
+                text = dayName, style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                ), textAlign = TextAlign.Center, modifier = Modifier.padding(6.dp)
+            )
         }
     }
 }
@@ -580,29 +638,24 @@ fun formatToAmPmTime(hour: Int, minute: Int): String {
 
 @Composable
 private fun DayCell(
-    date: Calendar, isSelected: Boolean, onDateSelected: (Calendar) -> Unit
+    date: Calendar, isSelected: Boolean, isCurrentMonth: Boolean, onDateSelected: (Calendar) -> Unit
 ) {
     Box(
         modifier = Modifier
-            .padding(10.dp)
-            .fillMaxSize()
+            .padding(horizontal = 9.dp)
+            .clip(CircleShape)
+            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
             .noRippleClickable { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = date.get(Calendar.DAY_OF_MONTH).toString(),
-            style = if (isSelected) MaterialTheme.typography.bodySmall.copy(color = Color.White)
-            else MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    CircleShape
-                )
-                .padding(7.dp)
-                .fillMaxSize()
+            style = if (isSelected) MaterialTheme.typography.bodyMedium.copy(color = Color.White)
+            else MaterialTheme.typography.bodyMedium.copy(color = if (isCurrentMonth) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.outline),
+            modifier = Modifier.padding(10.dp)
         )
     }
+
 }
 
 private enum class ContentTypeForDialog {
@@ -640,4 +693,58 @@ private fun IconForDateSection(hasInfo: Boolean, clicked: () -> Unit) = if (hasI
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         contentDescription = "Follow"
     )
+}
+
+@Composable
+fun <T> NonLazyVerticalGrid(
+    modifier: Modifier = Modifier,
+    columns: Int,
+    data: List<T>,
+    verticalSpacing: Dp = 0.dp,
+    horizontalSpacing: Dp = 0.dp,
+    itemContent: @Composable (item: T) -> Unit
+) {
+
+    Box(modifier = modifier) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+
+            val numOfRows = (data.size / columns) + (if (data.size % columns > 0) 1 else 0)
+
+            repeat(numOfRows) { i ->
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
+                ) {
+
+                    repeat(columns) { j ->
+
+                        val index = j + (i * columns)
+
+                        if (index < data.size) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                itemContent(data[index])
+                            }
+                        } else {
+                            Box(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(verticalSpacing))
+
+            }
+        }
+
+    }
+
 }

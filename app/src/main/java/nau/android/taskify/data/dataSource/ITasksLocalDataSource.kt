@@ -3,11 +3,13 @@ package nau.android.taskify.data.dataSource
 import kotlinx.coroutines.flow.Flow
 import nau.android.taskify.data.model.Task
 import nau.android.taskify.data.model.TaskWithCategory
+import java.util.Calendar
 
 interface ITasksLocalDataSource {
 
-
     fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+
+    fun getTasksByDate(startDateInMillis: Long, endDateInMillis: Long): Flow<List<Task>>
 
     fun getAllTasks(): Flow<List<Task>>
 

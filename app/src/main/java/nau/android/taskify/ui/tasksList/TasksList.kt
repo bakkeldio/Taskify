@@ -31,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -371,7 +372,7 @@ fun MultiSelectionBottomAppBar(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TasksListCommon(
     title: String,
@@ -413,10 +414,13 @@ fun TasksListCommon(
         mutableStateOf(false)
     }
 
+    val createTaskBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     if (tasksListState.showCreateTaskBottomSheet) {
         CreateTaskBottomSheet(
             dateForNewTask.value,
             newTask ?: Task(name = ""),
+            sheetState = createTaskBottomSheetState,
             onDismissBottomSheet = {
                 newTask = null
                 dateForNewTask.value = DateInfo()

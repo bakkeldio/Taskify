@@ -33,6 +33,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -43,15 +45,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import dagger.hilt.android.AndroidEntryPoint
-import nau.android.taskify.ui.Destination
+import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.DestinationNavArgs
+import nau.android.taskify.ui.LoginDestination
+import nau.android.taskify.ui.MainAppViewModel
 import nau.android.taskify.ui.alarm.permission.AlarmPermission
 import nau.android.taskify.ui.calendar.TaskifyCalendar
 import nau.android.taskify.ui.category.CategoriesList
 import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrix
+import nau.android.taskify.ui.login.LoginPage
+import nau.android.taskify.ui.login.LoginWithEmailPassword
+import nau.android.taskify.ui.login.PasswordRecovery
+import nau.android.taskify.ui.login.SignInPage
+import nau.android.taskify.ui.login.SignUpPage
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
+import nau.android.taskify.ui.settings.TaskifySettings
 import nau.android.taskify.ui.task.TaskDetails
 import nau.android.taskify.ui.task.TaskItemContent
 import nau.android.taskify.ui.tasksList.AllTasksList
@@ -69,6 +80,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
             TaskifyTheme {
                 CompositionLocalProvider(LocalTaskifyColors provides Colors()) {
@@ -80,7 +92,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainPage(alarmPermission: AlarmPermission) {
+fun MainPage(
+    alarmPermission: AlarmPermission,
+    mainAppViewModel: MainAppViewModel = hiltViewModel()
+) {
+
+    val authState =
+        mainAppViewModel.isUserSignedIn().collectAsStateWithLifecycle(initialValue = null)
+
     val navController = rememberNavController()
 
     var showBottomNavigation by rememberSaveable {
@@ -92,7 +111,7 @@ fun MainPage(alarmPermission: AlarmPermission) {
     }
 
     val navigateToTaskDetails: (Long) -> Unit = {
-        navController.navigate("${Destination.TaskDetail}/$it")
+        navController.navigate("${MainDestination.TaskDetail}/$it")
     }
 
     val navigateUp: () -> Unit = {
@@ -107,15 +126,40 @@ fun MainPage(alarmPermission: AlarmPermission) {
 
         NavHost(
             navController = navController,
-            startDestination = Destination.ListOfTasks.route,
+            startDestination = if (authState.value == true) MainDestination.ListOfTasks.route else "login",
             modifier = Modifier.padding(innerPaddings)
         ) {
 
+
+            navigation(startDestination = LoginDestination.WelcomeScreen.route, route = "login") {
+                composable(LoginDestination.WelcomeScreen.route) {
+                    LoginPage(navigateToLoginWithEmailPassword = {
+                        navController.navigate(LoginDestination.SignInScreen.route)
+                    })
+                }
+                composable(LoginDestination.SignInScreen.route) {
+                    LoginWithEmailPassword(navigateToSignUpPage = {
+                        navController.navigate(LoginDestination.SignUpScreen.route)
+                    }, navigateUp = navigateUp, navigateToPasswordRecovery = {
+                        navController.navigate(LoginDestination.PasswordRecoveryScreen.route)
+                    })
+                }
+                composable(LoginDestination.SignUpScreen.route) {
+                    SignUpPage(navigateUp)
+                }
+                composable(LoginDestination.PasswordRecoveryScreen.route) {
+                    PasswordRecovery(navigateUp = navigateUp)
+                }
+                composable(LoginDestination.EmailVerificationScreen.route) {
+
+                }
+            }
+
             composable(
-                Destination.ListOfTasks.route
+                MainDestination.ListOfTasks.route
             ) {
                 AllTasksList(
-                    title = Destination.ListOfTasks.title,
+                    title = MainDestination.ListOfTasks.title,
                     alarmPermission = alarmPermission,
                     onMainBottomBarVisibilityChanged = { isInMultiSelection ->
                         showBottomNavigation = !isInMultiSelection
@@ -126,7 +170,7 @@ fun MainPage(alarmPermission: AlarmPermission) {
             }
 
             composable(
-                "${Destination.ListOfTasks.route}/${Destination.CategoryTasksList}/{${DestinationNavArgs.categoryId}}",
+                "${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/{${DestinationNavArgs.categoryId}}",
                 arguments = listOf(navArgument(DestinationNavArgs.categoryId) {
                     type = NavType.LongType
                 })
@@ -141,7 +185,7 @@ fun MainPage(alarmPermission: AlarmPermission) {
             }
 
             composable(
-                "${Destination.ListOfTasks.route}/${Destination.MatrixTasksList}/{${DestinationNavArgs.quadrantType}}",
+                "${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/{${DestinationNavArgs.quadrantType}}",
                 arguments = listOf(navArgument(DestinationNavArgs.quadrantType) {
                     type = NavType.IntType
                 })
@@ -157,7 +201,7 @@ fun MainPage(alarmPermission: AlarmPermission) {
             }
 
             composable(
-                "${Destination.TaskDetail}/{${DestinationNavArgs.taskId}}",
+                "${MainDestination.TaskDetail}/{${DestinationNavArgs.taskId}}",
                 arguments = listOf(navArgument(DestinationNavArgs.taskId) {
                     type = NavType.LongType
                 })
@@ -165,20 +209,20 @@ fun MainPage(alarmPermission: AlarmPermission) {
                 val taskId = backStackEntry.arguments?.getLong(DestinationNavArgs.taskId)
                 TaskDetails(taskId, navigateUp = navigateUp)
             }
-            composable(Destination.Categories.route) {
-                CategoriesList(Destination.Categories, navigateToCategoryTasksList = {
-                    navController.navigate("${Destination.ListOfTasks.route}/${Destination.CategoryTasksList}/$it")
+            composable(MainDestination.Categories.route) {
+                CategoriesList(MainDestination.Categories, navigateToCategoryTasksList = {
+                    navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/$it")
                 })
             }
-            composable(Destination.EisenhowerMatrix.route) {
+            composable(MainDestination.EisenhowerMatrix.route) {
                 EisenhowerMatrix(
-                    destination = Destination.EisenhowerMatrix,
+                    mainDestination = MainDestination.EisenhowerMatrix,
                     navigateToListDetails = {
-                        navController.navigate("${Destination.ListOfTasks.route}/${Destination.MatrixTasksList}/${it.id}")
+                        navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/${it.id}")
                     })
             }
-            composable(Destination.Calendar.route) { TaskifyCalendar() }
-            composable(Destination.AppSettings.route) { AppSettings(Destination.AppSettings.route) }
+            composable(MainDestination.Calendar.route) { TaskifyCalendar() }
+            composable(MainDestination.AppSettings.route) { TaskifySettings() }
         }
 
     }
@@ -241,11 +285,11 @@ fun TaskItem(
 
 
 fun showBottomNavigationInMainDestinations(destination: NavDestination): Boolean {
-    return destination.route == Destination.ListOfTasks.route ||
-            destination.route == Destination.Categories.route ||
-            destination.route == Destination.Calendar.route ||
-            destination.route == Destination.EisenhowerMatrix.route ||
-            destination.route == Destination.AppSettings.route
+    return destination.route == MainDestination.ListOfTasks.route ||
+            destination.route == MainDestination.Categories.route ||
+            destination.route == MainDestination.Calendar.route ||
+            destination.route == MainDestination.EisenhowerMatrix.route ||
+            destination.route == MainDestination.AppSettings.route
 
 }
 
@@ -275,11 +319,11 @@ fun TaskifyBottomNavigation(navController: NavController) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
         val items = listOf(
-            Destination.ListOfTasks,
-            Destination.Categories,
-            Destination.EisenhowerMatrix,
-            Destination.Calendar,
-            Destination.AppSettings
+            MainDestination.ListOfTasks,
+            MainDestination.Categories,
+            MainDestination.EisenhowerMatrix,
+            MainDestination.Calendar,
+            MainDestination.AppSettings
         )
 
         items.forEach { item ->

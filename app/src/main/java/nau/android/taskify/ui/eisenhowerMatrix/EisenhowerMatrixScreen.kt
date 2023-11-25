@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.R
-import nau.android.taskify.ui.Destination
+import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.customElements.TaskifyCustomCheckBox
 import nau.android.taskify.ui.extensions.applyColorForDateTime
 import nau.android.taskify.ui.extensions.formatTaskifyDate
@@ -62,7 +62,7 @@ internal val LocalDragTargetInfo = compositionLocalOf {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EisenhowerMatrix(
-    destination: Destination, matrixViewModel: EisenhowerViewModel = hiltViewModel(),
+    mainDestination: MainDestination, matrixViewModel: EisenhowerViewModel = hiltViewModel(),
     navigateToListDetails: (EisenhowerMatrixQuadrant) -> Unit
 ) {
 
@@ -72,7 +72,7 @@ fun EisenhowerMatrix(
     Scaffold(topBar = {
         TopAppBar(
             title = {
-                Text(text = destination.title)
+                Text(text = mainDestination.title)
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
         )
