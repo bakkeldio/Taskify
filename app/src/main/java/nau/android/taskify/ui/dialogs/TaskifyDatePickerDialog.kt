@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,10 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Devices
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,6 +68,7 @@ import nau.android.taskify.ui.extensions.formatDateInPattern
 import nau.android.taskify.ui.extensions.isSameDay
 import nau.android.taskify.ui.extensions.minusMonth
 import nau.android.taskify.ui.extensions.noRippleClickable
+import nau.android.taskify.ui.theme.TaskifyTheme
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -526,14 +533,15 @@ fun WeeklyCalendar(selectedDate: Calendar, onSelectDate: (Calendar) -> Unit) {
         columns = GridCells.Fixed(7),
         content = {
             WeekNames()
-            items(7) {index ->
+            items(7) { index ->
                 val currentDate = clonedDate.clone() as Calendar
                 currentDate.add(Calendar.DAY_OF_MONTH, index + 1)
                 DayCell(
                     date = currentDate,
                     isSelected = Pair(selectedDate, currentDate).isSameDay(),
                     isCurrentMonth = isCurrentMonth(currentDate),
-                    onDateSelected = onSelectDate)
+                    onDateSelected = onSelectDate
+                )
                 //clonedDate.add(Calendar.DAY_OF_MONTH, 1)
             }
         },
@@ -591,7 +599,8 @@ fun CalendarGrid(selectedDate: Calendar, onDateSelected: (Calendar) -> Unit) {
                         date = currentDate,
                         isSelected = isSelected,
                         isCurrentMonth = true,
-                        onDateSelected = onDateSelected)
+                        onDateSelected = onDateSelected
+                    )
                 }
             }
         }
@@ -640,11 +649,15 @@ fun formatToAmPmTime(hour: Int, minute: Int): String {
 private fun DayCell(
     date: Calendar, isSelected: Boolean, isCurrentMonth: Boolean, onDateSelected: (Calendar) -> Unit
 ) {
+
     Box(
         modifier = Modifier
-            .padding(horizontal = 9.dp)
-            .clip(CircleShape)
-            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .padding(horizontal = 8.dp)
+            .aspectRatio(1f)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = CircleShape
+            )
             .noRippleClickable { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
@@ -652,7 +665,8 @@ private fun DayCell(
             text = date.get(Calendar.DAY_OF_MONTH).toString(),
             style = if (isSelected) MaterialTheme.typography.bodyMedium.copy(color = Color.White)
             else MaterialTheme.typography.bodyMedium.copy(color = if (isCurrentMonth) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.outline),
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier.padding(4.dp),
+            maxLines = 1
         )
     }
 
@@ -695,56 +709,10 @@ private fun IconForDateSection(hasInfo: Boolean, clicked: () -> Unit) = if (hasI
     )
 }
 
+@Preview(showBackground = true, device = Devices.PIXEL_4)
 @Composable
-fun <T> NonLazyVerticalGrid(
-    modifier: Modifier = Modifier,
-    columns: Int,
-    data: List<T>,
-    verticalSpacing: Dp = 0.dp,
-    horizontalSpacing: Dp = 0.dp,
-    itemContent: @Composable (item: T) -> Unit
-) {
-
-    Box(modifier = modifier) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-
-            val numOfRows = (data.size / columns) + (if (data.size % columns > 0) 1 else 0)
-
-            repeat(numOfRows) { i ->
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)
-                ) {
-
-                    repeat(columns) { j ->
-
-                        val index = j + (i * columns)
-
-                        if (index < data.size) {
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                itemContent(data[index])
-                            }
-                        } else {
-                            Box(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(verticalSpacing))
-
-            }
-        }
-
+fun CalendarPreview() {
+    TaskifyTheme {
+        CalendarGrid(selectedDate = Calendar.getInstance(), onDateSelected = {})
     }
-
 }

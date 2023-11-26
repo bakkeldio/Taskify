@@ -96,6 +96,9 @@ dependencies {
 
     implementation 'com.google.firebase:firebase-auth'
 
+    //Google play services
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+
     //coroutine support for viewmodel
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2"
 

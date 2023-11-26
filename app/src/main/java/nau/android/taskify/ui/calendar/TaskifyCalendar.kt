@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.TaskItem
 import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.customElements.NoTasks
 import nau.android.taskify.ui.dialogs.CalendarGrid
 import nau.android.taskify.ui.dialogs.WeeklyCalendar
 import nau.android.taskify.ui.extensions.addMonth
@@ -203,7 +204,7 @@ fun TaskifyCalendar(calendarViewModel: CalendarViewModel = hiltViewModel()) {
                 }
 
                 is CalendarTasksListState.Empty -> {
-                    NoTasksComposable()
+                    NoTasks(stringResource(id = R.string.you_have_free_day))
                 }
 
                 is CalendarTasksListState.Error -> {
@@ -211,18 +212,6 @@ fun TaskifyCalendar(calendarViewModel: CalendarViewModel = hiltViewModel()) {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun NoTasksComposable() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = stringResource(id = R.string.no_tasks_message),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.outline,
-            fontWeight = FontWeight.Medium
-        )
     }
 }
 

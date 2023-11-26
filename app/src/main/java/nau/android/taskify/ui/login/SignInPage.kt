@@ -49,7 +49,7 @@ import nau.android.taskify.ui.theme.TaskifyTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginWithEmailPassword(
-    loginViewModel: LoginViewModel = hiltViewModel(),
+    loginWithEmailAndPasswordViewModel: LoginWithEmailAndPasswordViewModel = hiltViewModel(),
     navigateToSignUpPage: () -> Unit,
     navigateToPasswordRecovery: () -> Unit,
     navigateUp: () -> Unit
@@ -71,12 +71,12 @@ fun LoginWithEmailPassword(
 
     val focusManager = LocalFocusManager.current
 
-    val message = loginViewModel.failureMessage.observeAsState()
+    val message = loginWithEmailAndPasswordViewModel.failureMessage.observeAsState()
 
     LaunchedEffect(key1 = message.value) {
         message.value?.let { message ->
             snackBarHostState.showSnackbar(message)
-            loginViewModel.resetErrorMessage()
+            loginWithEmailAndPasswordViewModel.resetErrorMessage()
         }
     }
 
@@ -113,10 +113,10 @@ fun LoginWithEmailPassword(
                 onSignIn = { email, password ->
                     keyBoardController?.hide()
                     focusManager.clearFocus()
-                    val emailValid = loginViewModel.isEmailValid(email)
-                    val passwordValid = loginViewModel.isPasswordValid(password)
+                    val emailValid = loginWithEmailAndPasswordViewModel.isEmailValid(email)
+                    val passwordValid = loginWithEmailAndPasswordViewModel.isPasswordValid(password)
                     if (emailValid && passwordValid) {
-                        loginViewModel.signIndWithEmailPassword(email, password)
+                        loginWithEmailAndPasswordViewModel.signIndWithEmailPassword(email, password)
                     } else {
                         if (!emailValid) {
                             showEmailContentErrorMessage = true

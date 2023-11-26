@@ -153,7 +153,8 @@ class TaskListViewModel @Inject constructor(
     fun getAllTasks(groupingType: GroupingType, sortingType: SortingType = SortingType.Date) =
         flow {
             taskRepository.getAllTasksWithCategories().map { items ->
-                val groupedItems = mapToKeyValue(items, groupingType)
+                val groupedItems =
+                    if (items.isNotEmpty()) mapToKeyValue(items, groupingType) else emptyMap()
                 sortTasksListWithCategories(sortingType, groupedItems)
             }.catch {
                 emit(TasksListState.Error(it))

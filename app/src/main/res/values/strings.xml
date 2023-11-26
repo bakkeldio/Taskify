@@ -47,7 +47,11 @@
     <string name="sort_by">Sort by</string>
     <string name="group_by">Group by</string>
 
-    <string name="no_tasks_message">No tasks on the day.\nClick + to create your task.</string>
+    <string name="no_tasks_on_the_day_message">No tasks on the day.\nClick + to create your task.</string>
+    <string name="completed_all_tasks_message">You have completed all tasks.</string>
+    <string name="ready_for_new_tasks">Tap + to create new tasks.</string>
+    <string name="you_have_free_day">You have a free day.</string>
+    <string name="no_categories">You have no categories.\nTap + to create your first one.</string>
 
     <string name="settings">Settings</string>
     <string name="appearance">Appearance</string>
@@ -77,4 +81,6 @@
     <string name="password_content_error_message">Password should consist of at least:\n- 8 characters\n- one upper case letter\n- one lower case letter\n- one special symbol</string>
     <string name="email_sent_description">If your provided email exists you will receive there a password reset link</string>
     <string name="write_email_to_send_password_reset_link">Email to reset password</string>
+
+    <string name="web_client_id">970737741830-ph6i01he7tre8jnv95g9orc04n2925mh.apps.googleusercontent.com</string>
 </resources>

@@ -21,8 +21,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import dagger.hilt.android.AndroidEntryPoint
+import nau.android.taskify.ui.GoogleAuthClient
 import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.DestinationNavArgs
 import nau.android.taskify.ui.LoginDestination
@@ -58,7 +61,6 @@ import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrix
 import nau.android.taskify.ui.login.LoginPage
 import nau.android.taskify.ui.login.LoginWithEmailPassword
 import nau.android.taskify.ui.login.PasswordRecovery
-import nau.android.taskify.ui.login.SignInPage
 import nau.android.taskify.ui.login.SignUpPage
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
@@ -77,6 +79,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var permissions: AlarmPermission
 
+    @Inject
+    lateinit var googleAuthClient: GoogleAuthClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -84,7 +89,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TaskifyTheme {
                 CompositionLocalProvider(LocalTaskifyColors provides Colors()) {
-                    MainPage(permissions)
+                    MainPage(googleAuthClient, permissions)
                 }
             }
         }
@@ -93,6 +98,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainPage(
+    authUiClient: GoogleAuthClient,
     alarmPermission: AlarmPermission,
     mainAppViewModel: MainAppViewModel = hiltViewModel()
 ) {
@@ -124,107 +130,117 @@ fun MainPage(
         }
     }, contentWindowInsets = WindowInsets(top = 0, bottom = 0)) { innerPaddings ->
 
-        NavHost(
-            navController = navController,
-            startDestination = if (authState.value == true) MainDestination.ListOfTasks.route else "login",
-            modifier = Modifier.padding(innerPaddings)
-        ) {
+        if (authState.value != null) {
 
-
-            navigation(startDestination = LoginDestination.WelcomeScreen.route, route = "login") {
-                composable(LoginDestination.WelcomeScreen.route) {
-                    LoginPage(navigateToLoginWithEmailPassword = {
-                        navController.navigate(LoginDestination.SignInScreen.route)
-                    })
-                }
-                composable(LoginDestination.SignInScreen.route) {
-                    LoginWithEmailPassword(navigateToSignUpPage = {
-                        navController.navigate(LoginDestination.SignUpScreen.route)
-                    }, navigateUp = navigateUp, navigateToPasswordRecovery = {
-                        navController.navigate(LoginDestination.PasswordRecoveryScreen.route)
-                    })
-                }
-                composable(LoginDestination.SignUpScreen.route) {
-                    SignUpPage(navigateUp)
-                }
-                composable(LoginDestination.PasswordRecoveryScreen.route) {
-                    PasswordRecovery(navigateUp = navigateUp)
-                }
-                composable(LoginDestination.EmailVerificationScreen.route) {
-
-                }
-            }
-
-            composable(
-                MainDestination.ListOfTasks.route
+            NavHost(
+                navController = navController,
+                startDestination = if (authState.value!!) MainDestination.ListOfTasks.route else "login",
+                modifier = Modifier.padding(innerPaddings)
             ) {
-                AllTasksList(
-                    title = MainDestination.ListOfTasks.title,
-                    alarmPermission = alarmPermission,
-                    onMainBottomBarVisibilityChanged = { isInMultiSelection ->
-                        showBottomNavigation = !isInMultiSelection
-                    },
-                    navigateToTaskDetails = navigateToTaskDetails,
-                    navigateUp = navigateUp
-                )
-            }
 
-            composable(
-                "${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/{${DestinationNavArgs.categoryId}}",
-                arguments = listOf(navArgument(DestinationNavArgs.categoryId) {
-                    type = NavType.LongType
-                })
-            ) { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.getLong(DestinationNavArgs.categoryId)
-                CategoryTasksList(
-                    categoryId = categoryId,
-                    alarmPermission = alarmPermission,
-                    navigateToTaskDetails = navigateToTaskDetails,
-                    navigateUp = navigateUp
-                )
-            }
 
-            composable(
-                "${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/{${DestinationNavArgs.quadrantType}}",
-                arguments = listOf(navArgument(DestinationNavArgs.quadrantType) {
-                    type = NavType.IntType
-                })
-            ) { backStackEntry ->
-                val quadrantId =
-                    backStackEntry.arguments?.getInt(DestinationNavArgs.quadrantType)
-                QuadrantTasksList(
-                    quadrantId = quadrantId,
-                    alarmPermission = alarmPermission,
-                    navigateToTaskDetails = navigateToTaskDetails,
-                    navigateUp = navigateUp
-                )
-            }
+                navigation(
+                    startDestination = LoginDestination.WelcomeScreen.route,
+                    route = "login"
+                ) {
+                    composable(LoginDestination.WelcomeScreen.route) {
 
-            composable(
-                "${MainDestination.TaskDetail}/{${DestinationNavArgs.taskId}}",
-                arguments = listOf(navArgument(DestinationNavArgs.taskId) {
-                    type = NavType.LongType
-                })
-            ) { backStackEntry ->
-                val taskId = backStackEntry.arguments?.getLong(DestinationNavArgs.taskId)
-                TaskDetails(taskId, navigateUp = navigateUp)
-            }
-            composable(MainDestination.Categories.route) {
-                CategoriesList(MainDestination.Categories, navigateToCategoryTasksList = {
-                    navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/$it")
-                })
-            }
-            composable(MainDestination.EisenhowerMatrix.route) {
-                EisenhowerMatrix(
-                    mainDestination = MainDestination.EisenhowerMatrix,
-                    navigateToListDetails = {
-                        navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/${it.id}")
+                        LoginPage(
+                            googleAuthUiClient = authUiClient,
+                            navigateToLoginWithEmailPassword = {
+                                navController.navigate(LoginDestination.SignInScreen.route)
+                            })
+                    }
+                    composable(LoginDestination.SignInScreen.route) {
+                        LoginWithEmailPassword(navigateToSignUpPage = {
+                            navController.navigate(LoginDestination.SignUpScreen.route)
+                        }, navigateUp = navigateUp, navigateToPasswordRecovery = {
+                            navController.navigate(LoginDestination.PasswordRecoveryScreen.route)
+                        })
+                    }
+                    composable(LoginDestination.SignUpScreen.route) {
+                        SignUpPage(navigateUp)
+                    }
+                    composable(LoginDestination.PasswordRecoveryScreen.route) {
+                        PasswordRecovery(navigateUp = navigateUp)
+                    }
+                    composable(LoginDestination.EmailVerificationScreen.route) {
+
+                    }
+                }
+
+                composable(
+                    MainDestination.ListOfTasks.route
+                ) {
+                    AllTasksList(
+                        title = MainDestination.ListOfTasks.title,
+                        alarmPermission = alarmPermission,
+                        onMainBottomBarVisibilityChanged = { isInMultiSelection ->
+                            showBottomNavigation = !isInMultiSelection
+                        },
+                        navigateToTaskDetails = navigateToTaskDetails,
+                        navigateUp = navigateUp
+                    )
+                }
+
+                composable(
+                    "${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/{${DestinationNavArgs.categoryId}}",
+                    arguments = listOf(navArgument(DestinationNavArgs.categoryId) {
+                        type = NavType.LongType
                     })
-            }
-            composable(MainDestination.Calendar.route) { TaskifyCalendar() }
-            composable(MainDestination.AppSettings.route) { TaskifySettings() }
-        }
+                ) { backStackEntry ->
+                    val categoryId =
+                        backStackEntry.arguments?.getLong(DestinationNavArgs.categoryId)
+                    CategoryTasksList(
+                        categoryId = categoryId,
+                        alarmPermission = alarmPermission,
+                        navigateToTaskDetails = navigateToTaskDetails,
+                        navigateUp = navigateUp
+                    )
+                }
 
+                composable(
+                    "${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/{${DestinationNavArgs.quadrantType}}",
+                    arguments = listOf(navArgument(DestinationNavArgs.quadrantType) {
+                        type = NavType.IntType
+                    })
+                ) { backStackEntry ->
+                    val quadrantId =
+                        backStackEntry.arguments?.getInt(DestinationNavArgs.quadrantType)
+                    QuadrantTasksList(
+                        quadrantId = quadrantId,
+                        alarmPermission = alarmPermission,
+                        navigateToTaskDetails = navigateToTaskDetails,
+                        navigateUp = navigateUp
+                    )
+                }
+
+                composable(
+                    "${MainDestination.TaskDetail}/{${DestinationNavArgs.taskId}}",
+                    arguments = listOf(navArgument(DestinationNavArgs.taskId) {
+                        type = NavType.LongType
+                    })
+                ) { backStackEntry ->
+                    val taskId = backStackEntry.arguments?.getLong(DestinationNavArgs.taskId)
+                    TaskDetails(taskId, navigateUp = navigateUp)
+                }
+                composable(MainDestination.Categories.route) {
+                    CategoriesList(MainDestination.Categories, navigateToCategoryTasksList = {
+                        navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.CategoryTasksList}/$it")
+                    })
+                }
+                composable(MainDestination.EisenhowerMatrix.route) {
+                    EisenhowerMatrix(
+                        mainDestination = MainDestination.EisenhowerMatrix,
+                        navigateToListDetails = {
+                            navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/${it.id}")
+                        })
+                }
+                composable(MainDestination.Calendar.route) { TaskifyCalendar() }
+                composable(MainDestination.AppSettings.route) { TaskifySettings() }
+            }
+
+        }
     }
 }
 

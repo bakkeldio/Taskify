@@ -1,4 +1,4 @@
-package nau.android.taskify.data
+package nau.android.taskify.ui.di
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp

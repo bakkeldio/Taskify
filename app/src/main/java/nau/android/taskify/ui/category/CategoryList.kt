@@ -32,6 +32,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
 import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.calendar.CalendarTasksListState
+import nau.android.taskify.ui.customElements.NoCategories
 import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.searchBars.TaskifySearchBar
@@ -85,6 +87,10 @@ fun CategoriesList(
                         categories = result.categories,
                         onCategoryClicked = navigateToCategoryTasksList
                     )
+                }
+
+                is CategoriesListState.Empty -> {
+                    NoCategories()
                 }
 
                 else -> Unit

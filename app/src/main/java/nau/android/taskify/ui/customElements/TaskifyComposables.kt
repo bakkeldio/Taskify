@@ -1,15 +1,20 @@
 package nau.android.taskify.ui.customElements
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -357,6 +362,51 @@ fun TaskifyLoginErrorMessage(message: String) {
     Text(
         text = message,
         style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.error),
-        modifier = Modifier.padding(top = 10.dp).fillMaxWidth(0.8f)
+        modifier = Modifier
+            .padding(top = 10.dp)
+            .fillMaxWidth(0.8f)
     )
+}
+
+@Composable
+fun NoTasks(message: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Image(
+                painter = painterResource(id = R.drawable.no_tasks_placeholder),
+                modifier = Modifier
+                    .background(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .size(200.dp),
+                contentDescription = stringResource(id = R.string.no_tasks_on_the_day_message)
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = message,
+                style = MaterialTheme.typography.titleSmall.copy(color = Color.Black)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = stringResource(id = R.string.ready_for_new_tasks),
+                style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.outline)
+            )
+        }
+    }
+}
+
+@Composable
+fun NoCategories() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(
+            text = stringResource(id = R.string.no_categories),
+            style = MaterialTheme.typography.titleSmall.copy(
+                color = MaterialTheme.colorScheme.outline
+            )
+        )
+    }
 }

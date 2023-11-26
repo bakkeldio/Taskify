@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import nau.android.taskify.R
 import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.theme.TaskifyTheme
@@ -47,7 +48,7 @@ import nau.android.taskify.ui.theme.TaskifyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TaskifySettings() {
+fun TaskifySettings(taskifySettingViewModel: TaskifyProfileViewModel = hiltViewModel()) {
 
     Scaffold(topBar = {
         CenterAlignedTopAppBar(
@@ -124,7 +125,9 @@ fun TaskifySettings() {
             }
             Spacer(modifier = Modifier.height(50.dp))
             OutlinedButton(
-                onClick = { /*TODO*/ },
+                onClick = {
+                    taskifySettingViewModel.signOut()
+                },
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.surface
