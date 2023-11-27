@@ -399,6 +399,18 @@ fun NoTasks(message: String) {
     }
 }
 
+
+@Composable
+fun NoTasksForEisenhowerMatrix() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = stringResource(id = R.string.no_tasks_for_matrix_quadrant),
+            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.outline),
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+
 @Composable
 fun NoCategories() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

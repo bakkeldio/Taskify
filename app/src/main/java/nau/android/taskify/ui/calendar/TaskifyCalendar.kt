@@ -198,9 +198,13 @@ fun TaskifyCalendar(calendarViewModel: CalendarViewModel = hiltViewModel()) {
             }
             when (val state = calendarTasksState.value) {
                 is CalendarTasksListState.Success -> {
-                    CalendarsTasksLoaded(list = state.tasks, navigateToTaskDetails = {}) {
+                    CalendarsTasksLoaded(
+                        list = state.tasks,
+                        deleteTask = {},
+                        navigateToTaskDetails = {},
+                        completeTask = {
 
-                    }
+                        })
                 }
 
                 is CalendarTasksListState.Empty -> {
@@ -219,7 +223,8 @@ fun TaskifyCalendar(calendarViewModel: CalendarViewModel = hiltViewModel()) {
 fun CalendarsTasksLoaded(
     list: List<Task>,
     navigateToTaskDetails: (Long) -> Unit,
-    completeTask: () -> Unit
+    completeTask: () -> Unit,
+    deleteTask: (Task) -> Unit
 ) {
     LazyColumn(
         content = {
@@ -230,7 +235,8 @@ fun CalendarsTasksLoaded(
                     task = task,
                     showDetails = false,
                     onComplete = completeTask,
-                    navigateToTaskDetails = navigateToTaskDetails
+                    navigateToTaskDetails = navigateToTaskDetails,
+                    deleteTask = deleteTask
                 )
             }
         },

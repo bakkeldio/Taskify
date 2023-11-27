@@ -8,4 +8,6 @@ sealed class CategoryTasksListState {
     class Success(val tasks: Map<HeaderType, List<Task>>) : CategoryTasksListState()
 
     class Error(val throwable: Throwable) : CategoryTasksListState()
+
+    object Empty : CategoryTasksListState()
 }

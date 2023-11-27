@@ -1,10 +1,13 @@
 package nau.android.taskify.ui.tasksList
 
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -19,6 +22,7 @@ import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
 import nau.android.taskify.ui.enums.DateEnum
 import nau.android.taskify.ui.enums.TaskRepeatInterval
 import nau.android.taskify.ui.extensions.updateDate
+import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
 import java.util.Calendar
@@ -33,6 +37,17 @@ class TaskListViewModel @Inject constructor(
 ) :
     ViewModel() {
 
+
+    private val _taskWithCategoriesState: MutableStateFlow<TasksListState> =
+        MutableStateFlow(TasksListState.Loading)
+    val tasksWithCategoriesState: StateFlow<TasksListState> = _taskWithCategoriesState
+
+    private val _categoryTasksState: MutableStateFlow<CategoryTasksListState> =
+        MutableStateFlow(CategoryTasksListState.Loading)
+    val categoryTasksState: StateFlow<CategoryTasksListState> = _categoryTasksState
+
+    private var taskOnDeletion: Task? = null
+
     fun createTask(task: Task) {
 
         viewModelScope.launch {
@@ -44,9 +59,12 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
-    fun deleteTask(task: Task) {
+    fun deleteTask() {
+        val task = taskOnDeletion ?: return
         viewModelScope.launch {
             taskRepository.deleteTask(task)
+            alarmScheduler.cancelTaskAlarm(task.id)
+            taskOnDeletion = null
         }
     }
 
@@ -67,47 +85,55 @@ class TaskListViewModel @Inject constructor(
             }.forEach {
                 alarmScheduler.cancelTaskAlarm(it.id)
             }
-
         }
     }
+
 
     fun getEisenhowerQuadrantTasks(
         groupingType: GroupingType,
         sortingType: SortingType,
         eisenhowerMatrixQuadrant: EisenhowerMatrixQuadrant
-    ) = flow {
-        taskRepository.getAllTasksWithCategories().map {
-            val tasks = when (eisenhowerMatrixQuadrant) {
-                EisenhowerMatrixQuadrant.IMPORTANT_URGENT -> {
-                    it.filter { taskWithCategory ->
-                        taskWithCategory.task.isItImportant() && taskWithCategory.task.isItUrgent()
+    ) {
+
+        viewModelScope.launch {
+            taskRepository.getAllTasksWithCategories().map {
+                val tasks = when (eisenhowerMatrixQuadrant) {
+                    EisenhowerMatrixQuadrant.IMPORTANT_URGENT -> {
+                        it.filter { taskWithCategory ->
+                            taskWithCategory.task.isItImportant() && taskWithCategory.task.isItUrgent()
+                        }
+                    }
+
+                    EisenhowerMatrixQuadrant.NOT_URGENT_IMPORTANT -> {
+                        it.filter { taskWithCategory ->
+                            taskWithCategory.task.isItImportant() && !taskWithCategory.task.isItUrgent()
+                        }
+                    }
+
+                    EisenhowerMatrixQuadrant.URGENT_UNIMPORTANT -> {
+                        it.filter { taskWithCategory ->
+                            taskWithCategory.task.isItUrgent() && !taskWithCategory.task.isItImportant()
+                        }
+                    }
+
+                    EisenhowerMatrixQuadrant.NOT_URGENT_UNIMPORTANT -> {
+                        it.filter { taskWithCategory ->
+                            !taskWithCategory.task.isItImportant() && !taskWithCategory.task.isItUrgent()
+                        }
                     }
                 }
-
-                EisenhowerMatrixQuadrant.NOT_URGENT_IMPORTANT -> {
-                    it.filter { taskWithCategory ->
-                        taskWithCategory.task.isItImportant() && !taskWithCategory.task.isItUrgent()
-                    }
-                }
-
-                EisenhowerMatrixQuadrant.URGENT_UNIMPORTANT -> {
-                    it.filter { taskWithCategory ->
-                        taskWithCategory.task.isItUrgent() && !taskWithCategory.task.isItImportant()
-                    }
-                }
-
-                EisenhowerMatrixQuadrant.NOT_URGENT_UNIMPORTANT -> {
-                    it.filter { taskWithCategory ->
-                        !taskWithCategory.task.isItImportant() && !taskWithCategory.task.isItUrgent()
-                    }
+                val groupedTasks =
+                    if (tasks.isNotEmpty()) mapToKeyValue(tasks, groupingType) else emptyMap()
+                sortTasksListWithCategories(sortingType, groupedTasks)
+            }.catch {
+                _taskWithCategoriesState.value = TasksListState.Error(it)
+            }.collect {
+                if (it.isEmpty()) {
+                    _taskWithCategoriesState.value = TasksListState.Empty
+                } else {
+                    _taskWithCategoriesState.value = TasksListState.Success(it)
                 }
             }
-            val groupedTasks = mapToKeyValue(tasks, groupingType)
-            sortTasksListWithCategories(sortingType, groupedTasks)
-        }.catch {
-            emit(TasksListState.Error(it))
-        }.collect {
-            emit(TasksListState.Success(it))
         }
     }
 
@@ -116,56 +142,124 @@ class TaskListViewModel @Inject constructor(
         categoryId: Long,
         groupingType: GroupingType,
         sortingType: SortingType = SortingType.Date
-    ) =
-        flow {
+    ) {
+
+        viewModelScope.launch {
             taskRepository.getCategoryTasks(
                 categoryId
             ).map { items ->
-                val groupedItems = when (groupingType) {
-                    GroupingType.Priority -> {
-                        items.groupBy {
-                            it.priority
-                        }.mapKeys {
-                            HeaderType.Priority(it.key.name, it.key.id)
+                val groupedItems = if (items.isNotEmpty()) {
+                    when (groupingType) {
+                        GroupingType.Priority -> {
+                            items.groupBy {
+                                it.priority
+                            }.mapKeys {
+                                HeaderType.Priority(it.key.name, it.key.id)
+                            }
                         }
-                    }
 
-                    GroupingType.Date -> {
-                        items.groupBy { taskWithCategory ->
-                            taskWithCategory.dueDate?.let {
-                                convertCalendarToDateEnum(it)
-                            } ?: DateEnum.NO_DATE
-                        }.mapKeys {
-                            HeaderType.Date(it.key)
+                        GroupingType.Date -> {
+                            items.groupBy { taskWithCategory ->
+                                taskWithCategory.dueDate?.let {
+                                    convertCalendarToDateEnum(it)
+                                } ?: DateEnum.NO_DATE
+                            }.mapKeys {
+                                HeaderType.Date(it.key)
+                            }
                         }
-                    }
 
-                    else -> mapOf(Pair(HeaderType.NoHeader, items))
+                        else -> mapOf(Pair(HeaderType.NoHeader, items))
+                    }
+                } else {
+                    emptyMap()
                 }
                 sortCategoryTasksList(sortingType, groupedItems)
             }.catch {
-                emit(CategoryTasksListState.Error(it))
+                _categoryTasksState.value = CategoryTasksListState.Error(it)
             }.collect {
-                emit(CategoryTasksListState.Success(it))
+                if (it.isEmpty()) {
+                    _categoryTasksState.value = CategoryTasksListState.Empty
+                } else {
+                    _categoryTasksState.value = CategoryTasksListState.Success(it)
+                }
             }
-        }
 
-    fun getAllTasks(groupingType: GroupingType, sortingType: SortingType = SortingType.Date) =
-        flow {
+        }
+    }
+
+    fun getAllTasks(groupingType: GroupingType, sortingType: SortingType = SortingType.Date) {
+        viewModelScope.launch {
             taskRepository.getAllTasksWithCategories().map { items ->
                 val groupedItems =
                     if (items.isNotEmpty()) mapToKeyValue(items, groupingType) else emptyMap()
                 sortTasksListWithCategories(sortingType, groupedItems)
             }.catch {
-                emit(TasksListState.Error(it))
+                _taskWithCategoriesState.value = TasksListState.Error(it)
             }.collect { items ->
                 if (items.isEmpty()) {
-                    emit(TasksListState.Empty)
+                    _taskWithCategoriesState.value = TasksListState.Empty
                 } else {
-                    emit(TasksListState.Success(items))
+                    _taskWithCategoriesState.value = TasksListState.Success(items)
                 }
             }
         }
+    }
+
+    fun putTasksOnDeletion(tasks: List<Task>, categoryId: Long? = null) {
+        if (categoryId != null) {
+            val currentTasks =
+                _categoryTasksState.value as? CategoryTasksListState.Success ?: return
+            _categoryTasksState.value =
+                CategoryTasksListState.Success(currentTasks.tasks.mapValues { entry ->
+                    entry.value.filterNot {
+                        tasks.contains(it)
+                    }
+                })
+        } else {
+            val currentTasks = _taskWithCategoriesState.value as? TasksListState.Success ?: return
+            _taskWithCategoriesState.value =
+                TasksListState.Success(currentTasks.tasks.mapValues { entry ->
+                    entry.value.filterNot {
+                        tasks.contains(it.task)
+                    }
+                })
+        }
+    }
+
+    fun putTaskOnDeletion(task: Task, categoryId: Long? = null) {
+        taskOnDeletion = task
+        if (categoryId != null) {
+            val currentTasks =
+                _categoryTasksState.value as? CategoryTasksListState.Success ?: return
+            _categoryTasksState.value =
+                CategoryTasksListState.Success(currentTasks.tasks.mapValues { entry ->
+                    entry.value.filterNot {
+                        task.id != it.id
+                    }
+                })
+        } else {
+            val currentTasks = _taskWithCategoriesState.value as? TasksListState.Success ?: return
+            _taskWithCategoriesState.value =
+                TasksListState.Success(currentTasks.tasks.mapValues { entry ->
+                    entry.value.filterNot {
+                        task.id == it.task.id
+                    }
+                })
+        }
+
+    }
+
+    fun undoTasksDeletion(groupingType: GroupingType, sortingType: SortingType) {
+        getAllTasks(groupingType, sortingType)
+    }
+
+    fun undoCategoryTasksDeletion(
+        categoryId: Long,
+        groupingType: GroupingType,
+        sortingType: SortingType
+    ) {
+        getCategoryTasks(categoryId, groupingType, sortingType)
+    }
 
     private fun sortTasksListWithCategories(
         sortingType: SortingType,

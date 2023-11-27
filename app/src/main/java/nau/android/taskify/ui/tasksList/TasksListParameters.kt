@@ -18,5 +18,5 @@ class TasksListParameters {
     var inMultiSelection by mutableStateOf(false)
     var showCategoriesBottomSheet by mutableStateOf(false)
     var selectedTasks by mutableStateOf(emptySet<Task>())
-    var showBackNavigation by mutableStateOf(false)
+    var showUndoSnackBar by mutableStateOf(false)
 }

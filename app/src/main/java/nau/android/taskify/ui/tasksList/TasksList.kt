@@ -5,27 +5,19 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import android.widget.Space
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.BottomAppBar
@@ -36,6 +28,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,16 +45,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,7 +61,10 @@ import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import nau.android.taskify.FloatingActionButton
+import nau.android.taskify.LocalSnackbarHost
 import nau.android.taskify.R
 import nau.android.taskify.TaskItem
 import nau.android.taskify.TaskItemInMultiSelection
@@ -103,6 +101,7 @@ val LocalContentWindowInsets = compositionLocalOf {
 private fun Tasks(
     tasksMap: Map<HeaderType, List<Task>>,
     onCompleteTask: (Task) -> Unit,
+    deleteTask: (Task) -> Unit,
     navigateToTaskDetails: (Long) -> Unit
 ) {
     val tasksListState = LocalTasksList.current
@@ -180,11 +179,10 @@ private fun Tasks(
                             })
                     } else {
                         TaskItem(
-                            task,
-                            showDetails = tasksListState.showDetails,
-                            onComplete = {
+                            task, showDetails = tasksListState.showDetails, onComplete = {
                                 onCompleteTask(task)
-                            }) { taskId ->
+                            }, deleteTask = deleteTask
+                        ) { taskId ->
                             navigateToTaskDetails(taskId)
                         }
                     }
@@ -199,7 +197,8 @@ private fun Tasks(
 private fun TasksWithCategories(
     tasksMap: Map<HeaderType, List<TaskWithCategory>>,
     navigateToTaskDetails: (Long) -> Unit,
-    onCompleteTask: (Task) -> Unit
+    onCompleteTask: (Task) -> Unit,
+    deleteTask: (Task) -> Unit
 ) {
 
     val tasksListState = LocalTasksList.current
@@ -262,7 +261,9 @@ private fun TasksWithCategories(
                 }
             }
             LazyColumn(content = {
-                items(map.value) { taskWithCategory ->
+                items(map.value, key = {
+                    it.task.id
+                }) { taskWithCategory ->
                     if (tasksListState.inMultiSelection) {
                         TaskItemInMultiSelection(selected = selectedTasks.contains(taskWithCategory.task),
                             task = taskWithCategory.task,
@@ -283,7 +284,9 @@ private fun TasksWithCategories(
                             showDetails = tasksListState.showDetails,
                             onComplete = {
                                 onCompleteTask(taskWithCategory.task)
-                            }) { taskId ->
+                            },
+                            deleteTask = deleteTask
+                        ) { taskId ->
                             navigateToTaskDetails(taskId)
                         }
                     }
@@ -338,8 +341,7 @@ fun NotificationPermissionDialog(
 
 @Composable
 fun MultiSelectionBottomAppBar(
-    deleteSelectedTasks: (Set<Task>) -> Unit,
-    markAllSelectedTasksAsDone: () -> Unit
+    deleteSelectedTasks: () -> Unit, markAllSelectedTasksAsDone: () -> Unit
 ) {
     val listState = LocalTasksList.current
     AnimatedVisibility(visible = listState.inMultiSelection) {
@@ -349,7 +351,7 @@ fun MultiSelectionBottomAppBar(
             ) {
 
                 IconButton(onClick = {
-                    deleteSelectedTasks(listState.selectedTasks)
+                    deleteSelectedTasks()
                     listState.inMultiSelection = false
                     listState.selectedTasks = emptySet()
                 }) {
@@ -458,7 +460,8 @@ fun TasksListCommon(
                 dateForNewTask.value = DateInfo()
                 tasksListViewModel.createTask(task)
                 tasksListState.showCreateTaskBottomSheet = false
-            }, category = taskCategory
+            },
+            category = taskCategory
         )
     }
 
@@ -506,13 +509,11 @@ fun TasksListCommon(
             }
         }
     }, bottomBar = {
-        MultiSelectionBottomAppBar(
-            deleteSelectedTasks = {
-                tasksListViewModel.deleteTasks(it)
-            },
-            markAllSelectedTasksAsDone = {
+        MultiSelectionBottomAppBar(deleteSelectedTasks = {
+            tasksListViewModel.putTasksOnDeletion(tasksListState.selectedTasks.toList())
+        }, markAllSelectedTasksAsDone = {
 
-            })
+        })
     }, contentWindowInsets = LocalContentWindowInsets.current) { innerPaddings ->
         content(innerPaddings)
     }
@@ -529,6 +530,10 @@ fun QuadrantTasksList(
 
     val localState = LocalTasksList.current
 
+    val snackbarState = LocalSnackbarHost.current
+
+    val coroutinScope = rememberCoroutineScope()
+
     val groupingType = localState.groupingType
 
     val sortingType = localState.sortingType
@@ -537,11 +542,12 @@ fun QuadrantTasksList(
 
     val quadrant = EisenhowerMatrixQuadrant.getMatrixQuadrantById(quadrantId)
 
-    val tasks = tasksViewModel.getEisenhowerQuadrantTasks(
-        groupingType,
-        sortingType,
-        quadrant
-    ).collectAsStateWithLifecycle(initialValue = TasksListState.Loading)
+    LaunchedEffect(key1 = groupingType, key2 = sortingType) {
+        tasksViewModel.getEisenhowerQuadrantTasks(groupingType, sortingType, quadrant)
+    }
+
+    val tasks =
+        tasksViewModel.tasksWithCategoriesState.collectAsStateWithLifecycle(initialValue = TasksListState.Loading)
 
     CompositionLocalProvider(
         LocalContentWindowInsets provides WindowInsets.navigationBars.add(
@@ -554,10 +560,9 @@ fun QuadrantTasksList(
             alarmPermission = alarmPermission,
             shouldIncludeNavigation = true,
             navigateUp = navigateUp
-        ) {
+        ) { paddingValues ->
             Column(
-                modifier = Modifier
-                    .padding(it)
+                modifier = Modifier.padding(paddingValues)
             ) {
 
                 TaskifySearchBar(onValueChange = {
@@ -566,13 +571,32 @@ fun QuadrantTasksList(
 
                 when (val result = tasks.value) {
                     is TasksListState.Success -> {
-                        TasksWithCategories(
-                            tasksMap = result.tasks,
-                            onCompleteTask = { task ->
-                                tasksViewModel.completeTask(task)
-                            },
-                            navigateToTaskDetails = navigateToTaskDetails
-                        )
+                        TasksWithCategories(tasksMap = result.tasks, onCompleteTask = { task ->
+                            tasksViewModel.completeTask(task)
+                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
+                            tasksViewModel.putTaskOnDeletion(it)
+                            coroutinScope.launch {
+
+                                val snackbarResult = snackbarState.showSnackbar(
+                                    "You have deleted ${it.name}",
+                                    "Undo",
+                                    duration = SnackbarDuration.Short
+                                )
+                                when (snackbarResult) {
+                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
+                                        groupingType,
+                                        sortingType
+                                    )
+
+                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                }
+
+                            }
+                        })
+                    }
+
+                    is TasksListState.Empty -> {
+                        NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
                     }
 
                     is TasksListState.Error -> {
@@ -598,17 +622,21 @@ fun CategoryTasksList(
 
     val state = LocalTasksList.current
 
+    val snackbarState = LocalSnackbarHost.current
+
     categoryId ?: return
+
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(categoryId) {
         categoryViewModel.getCategoryById(categoryId)
     }
 
-    val categoryTasksState =
+    LaunchedEffect(key1 = categoryId, key2 = state.groupingType, key3 = state.sortingType) {
         tasksViewModel.getCategoryTasks(categoryId, state.groupingType, state.sortingType)
-            .collectAsStateWithLifecycle(
-                initialValue = CategoryTasksListState.Loading
-            )
+    }
+
+    val categoryTasksState = tasksViewModel.categoryTasksState.collectAsStateWithLifecycle()
 
     val category = categoryViewModel.categoryLiveData.observeAsState()
 
@@ -624,8 +652,8 @@ fun CategoryTasksList(
             alarmPermission = alarmPermission,
             shouldIncludeNavigation = true,
             navigateUp = navigateUp
-        ) {
-            Column(modifier = Modifier.padding(it)) {
+        ) { paddingValues ->
+            Column(modifier = Modifier.padding(paddingValues)) {
 
                 TaskifySearchBar(onValueChange = {
 
@@ -633,13 +661,27 @@ fun CategoryTasksList(
 
                 when (val result = categoryTasksState.value) {
                     is CategoryTasksListState.Success -> {
-                        Tasks(
-                            tasksMap = result.tasks,
-                            onCompleteTask = { task ->
-                                tasksViewModel.completeTask(task)
-                            },
-                            navigateToTaskDetails = navigateToTaskDetails
-                        )
+                        Tasks(tasksMap = result.tasks, onCompleteTask = { task ->
+                            tasksViewModel.completeTask(task)
+                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
+                            tasksViewModel.putTaskOnDeletion(it, categoryId)
+                            coroutineScope.launch {
+                                val snackbarResult = snackbarState.showSnackbar(
+                                    "You have deleted ${it.name}",
+                                    actionLabel = "Undo",
+                                    duration = SnackbarDuration.Short
+                                )
+                                when (snackbarResult) {
+                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoCategoryTasksDeletion(
+                                        categoryId,
+                                        state.groupingType,
+                                        state.sortingType
+                                    )
+
+                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                }
+                            }
+                        })
                     }
 
                     is CategoryTasksListState.Error -> {
@@ -650,6 +692,8 @@ fun CategoryTasksList(
 
                     }
 
+                    is CategoryTasksListState.Empty -> NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
+
                 }
             }
         }
@@ -659,9 +703,7 @@ fun CategoryTasksList(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasksListTopAppBar(
-    title: String,
-    shouldIncludeNavigation: Boolean = false,
-    navigateUp: () -> Unit
+    title: String, shouldIncludeNavigation: Boolean = false, navigateUp: () -> Unit
 ) {
     val tasksListState = LocalTasksList.current
     if (tasksListState.inMultiSelection) {
@@ -670,6 +712,7 @@ fun TasksListTopAppBar(
             tasksListState.selectedTasks = emptySet()
         }
     } else {
+
         TopAppBar(
             title = {
                 Text(
@@ -684,11 +727,9 @@ fun TasksListTopAppBar(
                 }
             },
             actions = {
-                TaskifyMenuIcon(
-                    displayMenu = tasksListState.displayMenu,
-                    onDisplayMenuChanged = {
-                        tasksListState.displayMenu = it
-                    })
+                TaskifyMenuIcon(displayMenu = tasksListState.displayMenu, onDisplayMenuChanged = {
+                    tasksListState.displayMenu = it
+                })
                 TaskifyTasksListMenuDropdown()
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -708,13 +749,19 @@ fun AllTasksList(
 
     val localState = LocalTasksList.current
 
+    val snackbarHostState = LocalSnackbarHost.current
+
+    val coroutineScope = rememberCoroutineScope()
+
     val inMultiSelection = localState.inMultiSelection
 
-    val tasksState = tasksViewModel.getAllTasks(
-        localState.groupingType, localState.sortingType
-    ).collectAsStateWithLifecycle(
-        initialValue = TasksListState.Loading
-    )
+    LaunchedEffect(key1 = localState.groupingType, key2 = localState.sortingType) {
+        tasksViewModel.getAllTasks(
+            localState.groupingType, localState.sortingType
+        )
+    }
+
+    val tasksState = tasksViewModel.tasksWithCategoriesState.collectAsStateWithLifecycle()
     LaunchedEffect(key1 = inMultiSelection) {
         onMainBottomBarVisibilityChanged(inMultiSelection)
     }
@@ -727,8 +774,8 @@ fun AllTasksList(
             alarmPermission = alarmPermission,
             shouldIncludeNavigation = false,
             navigateUp = navigateUp
-        ) {
-            Column(modifier = Modifier.padding(it)) {
+        ) { paddingValues ->
+            Column(modifier = Modifier.padding(paddingValues)) {
 
                 TaskifySearchBar(onValueChange = {
 
@@ -736,17 +783,26 @@ fun AllTasksList(
 
                 when (val result = tasksState.value) {
                     is TasksListState.Success -> {
-                        TasksWithCategories(
-                            tasksMap = result.tasks,
-                            onCompleteTask = { task ->
-                                tasksViewModel.completeTask(task)
-                            },
-                            navigateToTaskDetails = navigateToTaskDetails
-                        )
-                    }
+                        TasksWithCategories(tasksMap = result.tasks, onCompleteTask = { task ->
+                            tasksViewModel.completeTask(task)
+                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
+                            tasksViewModel.putTaskOnDeletion(it)
+                            coroutineScope.launch {
+                                val snacbarResult = snackbarHostState.showSnackbar(
+                                    "You have deleted ${it.name}",
+                                    actionLabel = "Undo",
+                                    duration = SnackbarDuration.Short
+                                )
+                                when (snacbarResult) {
+                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
+                                        localState.groupingType,
+                                        localState.sortingType
+                                    )
+                                }
 
-                    is TasksListState.Error -> {
-
+                            }
+                        })
                     }
 
                     is TasksListState.Empty -> {
@@ -759,38 +815,3 @@ fun AllTasksList(
         }
     }
 }
-
-
-/*
-
- val sortedHeaders = when (groupingType) {
-     GroupingType.Priority -> {
-         sortedMap.entries.sortedBy {
-             (it.key as HeaderType.Priority).priorityNumber
-         }.associate {
-             it.toPair()
-         }
-     }
-
-     GroupingType.Category -> {
-         sortedMap.entries.sortedBy {
-             it.key.title
-         }.associate {
-             it.toPair()
-         }
-     }
-
-     GroupingType.Date -> {
-         sortedMap.entries.sortedBy {
-             (it.key as HeaderType.Date).date
-         }.associate {
-             it.toPair()
-         }
-     }
-
-     GroupingType.None -> {
-         sortedMap
-     }
- }
-
-  */

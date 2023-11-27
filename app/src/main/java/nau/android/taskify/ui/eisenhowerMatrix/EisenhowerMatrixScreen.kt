@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -47,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.R
 import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.customElements.NoTasksForEisenhowerMatrix
 import nau.android.taskify.ui.customElements.TaskifyCustomCheckBox
 import nau.android.taskify.ui.extensions.applyColorForDateTime
 import nau.android.taskify.ui.extensions.formatTaskifyDate
@@ -217,27 +219,30 @@ fun Quadrant(
                 navigateToListDetails(quadrant)
             }
         )
-        LazyColumn(content = {
-            items(list, key = {
-                it.id
-            }) { task ->
-                DragTarget(
-                    dataToDrop = task, eisenhowerMatrixQuadrant = quadrant
-                ) {
-                    QuadrantTaskItem(
-                        width,
-                        task = task,
-                        navigateToTaskDetails = navigateToTaskDetails,
-                        onCompleteTask = onCompleteTask,
-                        onUnCompleteTask = onUnCompleteTask
-                    )
+        if (list.isNotEmpty()) {
+            LazyColumn(content = {
+                items(list, key = {
+                    it.id
+                }) { task ->
+                    DragTarget(
+                        dataToDrop = task, eisenhowerMatrixQuadrant = quadrant
+                    ) {
+                        QuadrantTaskItem(
+                            width,
+                            task = task,
+                            navigateToTaskDetails = navigateToTaskDetails,
+                            onCompleteTask = onCompleteTask,
+                            onUnCompleteTask = onUnCompleteTask
+                        )
+
+                    }
 
                 }
-
-            }
-        })
+            })
+        } else {
+            NoTasksForEisenhowerMatrix()
+        }
     }
-
 }
 
 @Composable
