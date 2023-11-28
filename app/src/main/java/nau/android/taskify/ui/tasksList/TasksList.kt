@@ -28,10 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,7 +57,6 @@ import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.LocalSnackbarHost
@@ -195,7 +190,8 @@ private fun Tasks(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TasksWithCategories(
-    tasksMap: Map<HeaderType, List<TaskWithCategory>>,
+    currentTasks: Map<HeaderType, List<TaskWithCategory>>,
+    //completedTasks: List<TaskWithCategory>,
     navigateToTaskDetails: (Long) -> Unit,
     onCompleteTask: (Task) -> Unit,
     deleteTask: (Task) -> Unit
@@ -205,7 +201,8 @@ private fun TasksWithCategories(
 
     val selectedTasks = tasksListState.selectedTasks.toHashSet()
 
-    tasksMap.forEach { map ->
+
+    currentTasks.forEach { map ->
 
         Column(modifier = Modifier.padding(13.dp)) {
             if (map.key != HeaderType.NoHeader) {
@@ -265,7 +262,9 @@ private fun TasksWithCategories(
                     it.task.id
                 }) { taskWithCategory ->
                     if (tasksListState.inMultiSelection) {
-                        TaskItemInMultiSelection(selected = selectedTasks.contains(taskWithCategory.task),
+                        TaskItemInMultiSelection(selected = selectedTasks.contains(
+                            taskWithCategory.task
+                        ),
                             task = taskWithCategory.task,
                             category = taskWithCategory.category,
                             showDetails = tasksListState.showDetails,
@@ -294,6 +293,7 @@ private fun TasksWithCategories(
             }, verticalArrangement = Arrangement.spacedBy(20.dp))
         }
     }
+
 }
 
 @Composable
@@ -380,9 +380,7 @@ fun MultiSelectionBottomAppBar(
                         contentDescription = "complete tasks"
                     )
                 }
-
             }
-
         }
     }
 }
@@ -404,6 +402,9 @@ fun TasksListCommon(
         mutableStateOf(DateInfo())
     }
 
+    var showDataPickerDialog by remember {
+        mutableStateOf(false)
+    }
     var newTask by remember {
         mutableStateOf<Task?>(null)
     }
@@ -446,7 +447,7 @@ fun TasksListCommon(
                     newTask = task
                     taskCategory = category
                     dateForNewTask.value = date
-                    tasksListState.showDataPickerDialog = true
+                    showDataPickerDialog = true
                     tasksListState.showCreateTaskBottomSheet = false
                 } else if (notificationPermissionState.status.shouldShowRationale) {
                     showRationalePermissionDialog.value = true
@@ -478,13 +479,13 @@ fun TasksListCommon(
         }
     }
 
-    if (tasksListState.showDataPickerDialog) {
+    if (showDataPickerDialog) {
         TaskifyDatePickerDialog(dateForNewTask.value, onDismiss = {
-            tasksListState.showDataPickerDialog = false
+            showDataPickerDialog = false
             tasksListState.showCreateTaskBottomSheet = true
         }, onDateChanged = { dateInfo ->
             dateForNewTask.value = dateInfo
-            tasksListState.showDataPickerDialog = false
+            showDataPickerDialog = false
             tasksListState.showCreateTaskBottomSheet = true
         })
     }
@@ -528,15 +529,17 @@ fun QuadrantTasksList(
     navigateUp: () -> Unit
 ) {
 
-    val localState = LocalTasksList.current
+    val tasksListState = remember {
+        TasksListParameters()
+    }
 
     val snackbarState = LocalSnackbarHost.current
 
-    val coroutinScope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
 
-    val groupingType = localState.groupingType
+    val groupingType = tasksListState.groupingType
 
-    val sortingType = localState.sortingType
+    val sortingType = tasksListState.sortingType
 
     quadrantId ?: return
 
@@ -554,56 +557,64 @@ fun QuadrantTasksList(
             WindowInsets(bottom = 20.dp)
         )
     ) {
-        TasksListCommon(
-            title = stringResource(id = quadrant.titleR),
-            tasksListViewModel = tasksViewModel,
-            alarmPermission = alarmPermission,
-            shouldIncludeNavigation = true,
-            navigateUp = navigateUp
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier.padding(paddingValues)
-            ) {
 
-                TaskifySearchBar(onValueChange = {
+        CompositionLocalProvider(LocalTasksList provides tasksListState) {
 
-                })
+            TasksListCommon(
+                title = stringResource(id = quadrant.titleR),
+                tasksListViewModel = tasksViewModel,
+                alarmPermission = alarmPermission,
+                shouldIncludeNavigation = true,
+                navigateUp = navigateUp
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier.padding(paddingValues)
+                ) {
 
-                when (val result = tasks.value) {
-                    is TasksListState.Success -> {
-                        TasksWithCategories(tasksMap = result.tasks, onCompleteTask = { task ->
-                            tasksViewModel.completeTask(task)
-                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
-                            tasksViewModel.putTaskOnDeletion(it)
-                            coroutinScope.launch {
+                    TaskifySearchBar(onValueChange = {
 
-                                val snackbarResult = snackbarState.showSnackbar(
-                                    "You have deleted ${it.name}",
-                                    "Undo",
-                                    duration = SnackbarDuration.Short
-                                )
-                                when (snackbarResult) {
-                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
-                                        groupingType,
-                                        sortingType
-                                    )
+                    })
 
-                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
-                                }
+                    when (val result = tasks.value) {
+                        is TasksListState.Success -> {
+                            TasksWithCategories(
+                                currentTasks = result.tasks,
+                                onCompleteTask = { task ->
+                                    tasksViewModel.completeTask(task)
+                                },
+                                navigateToTaskDetails = navigateToTaskDetails,
+                                deleteTask = {
+                                    tasksViewModel.putTaskOnDeletion(it)
+                                    coroutineScope.launch {
 
-                            }
-                        })
+                                        val snackbarResult = snackbarState.showSnackbar(
+                                            "You have deleted ${it.name}",
+                                            "Undo",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        when (snackbarResult) {
+                                            SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
+                                                groupingType,
+                                                sortingType
+                                            )
+
+                                            SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                        }
+
+                                    }
+                                })
+                        }
+
+                        is TasksListState.Empty -> {
+                            NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
+                        }
+
+                        is TasksListState.Error -> {
+
+                        }
+
+                        else -> Unit
                     }
-
-                    is TasksListState.Empty -> {
-                        NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
-                    }
-
-                    is TasksListState.Error -> {
-
-                    }
-
-                    else -> Unit
                 }
             }
         }
@@ -620,7 +631,9 @@ fun CategoryTasksList(
     navigateToTaskDetails: (Long) -> Unit
 ) {
 
-    val state = LocalTasksList.current
+    val tasksListParameters = remember {
+        TasksListParameters()
+    }
 
     val snackbarState = LocalSnackbarHost.current
 
@@ -632,8 +645,16 @@ fun CategoryTasksList(
         categoryViewModel.getCategoryById(categoryId)
     }
 
-    LaunchedEffect(key1 = categoryId, key2 = state.groupingType, key3 = state.sortingType) {
-        tasksViewModel.getCategoryTasks(categoryId, state.groupingType, state.sortingType)
+    LaunchedEffect(
+        key1 = categoryId,
+        key2 = tasksListParameters.groupingType,
+        key3 = tasksListParameters.sortingType
+    ) {
+        tasksViewModel.getCategoryTasks(
+            categoryId,
+            tasksListParameters.groupingType,
+            tasksListParameters.sortingType
+        )
     }
 
     val categoryTasksState = tasksViewModel.categoryTasksState.collectAsStateWithLifecycle()
@@ -645,55 +666,58 @@ fun CategoryTasksList(
             WindowInsets(bottom = 20.dp)
         )
     ) {
+        CompositionLocalProvider(LocalTasksList provides tasksListParameters) {
 
-        TasksListCommon(
-            title = category.value?.name ?: "",
-            tasksListViewModel = tasksViewModel,
-            alarmPermission = alarmPermission,
-            shouldIncludeNavigation = true,
-            navigateUp = navigateUp
-        ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues)) {
 
-                TaskifySearchBar(onValueChange = {
+            TasksListCommon(
+                title = category.value?.name ?: "",
+                tasksListViewModel = tasksViewModel,
+                alarmPermission = alarmPermission,
+                shouldIncludeNavigation = true,
+                navigateUp = navigateUp
+            ) { paddingValues ->
+                Column(modifier = Modifier.padding(paddingValues)) {
 
-                })
+                    TaskifySearchBar(onValueChange = {
 
-                when (val result = categoryTasksState.value) {
-                    is CategoryTasksListState.Success -> {
-                        Tasks(tasksMap = result.tasks, onCompleteTask = { task ->
-                            tasksViewModel.completeTask(task)
-                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
-                            tasksViewModel.putTaskOnDeletion(it, categoryId)
-                            coroutineScope.launch {
-                                val snackbarResult = snackbarState.showSnackbar(
-                                    "You have deleted ${it.name}",
-                                    actionLabel = "Undo",
-                                    duration = SnackbarDuration.Short
-                                )
-                                when (snackbarResult) {
-                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoCategoryTasksDeletion(
-                                        categoryId,
-                                        state.groupingType,
-                                        state.sortingType
+                    })
+
+                    when (val result = categoryTasksState.value) {
+                        is CategoryTasksListState.Success -> {
+                            Tasks(tasksMap = result.tasks, onCompleteTask = { task ->
+                                tasksViewModel.completeTask(task)
+                            }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
+                                tasksViewModel.putTaskOnDeletion(it, categoryId)
+                                coroutineScope.launch {
+                                    val snackbarResult = snackbarState.showSnackbar(
+                                        "You have deleted ${it.name}",
+                                        actionLabel = "Undo",
+                                        duration = SnackbarDuration.Short
                                     )
+                                    when (snackbarResult) {
+                                        SnackbarResult.ActionPerformed -> tasksViewModel.undoCategoryTasksDeletion(
+                                            categoryId,
+                                            tasksListParameters.groupingType,
+                                            tasksListParameters.sortingType
+                                        )
 
-                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                        SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                    }
                                 }
-                            }
-                        })
+                            })
+                        }
+
+                        is CategoryTasksListState.Error -> {
+
+                        }
+
+                        is CategoryTasksListState.Loading -> {
+
+                        }
+
+                        is CategoryTasksListState.Empty -> NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
+
                     }
-
-                    is CategoryTasksListState.Error -> {
-
-                    }
-
-                    is CategoryTasksListState.Loading -> {
-
-                    }
-
-                    is CategoryTasksListState.Empty -> NoTasks(message = stringResource(id = R.string.completed_all_tasks_message))
-
                 }
             }
         }
@@ -747,7 +771,9 @@ fun AllTasksList(
     navigateUp: () -> Unit
 ) {
 
-    val localState = LocalTasksList.current
+    val localState = remember {
+        TasksListParameters()
+    }
 
     val snackbarHostState = LocalSnackbarHost.current
 
@@ -768,48 +794,55 @@ fun AllTasksList(
 
     CompositionLocalProvider(LocalContentWindowInsets provides WindowInsets(bottom = 0.dp)) {
 
-        TasksListCommon(
-            title = title,
-            tasksListViewModel = tasksViewModel,
-            alarmPermission = alarmPermission,
-            shouldIncludeNavigation = false,
-            navigateUp = navigateUp
-        ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues)) {
+        CompositionLocalProvider(LocalTasksList provides localState) {
 
-                TaskifySearchBar(onValueChange = {
+            TasksListCommon(
+                title = title,
+                tasksListViewModel = tasksViewModel,
+                alarmPermission = alarmPermission,
+                shouldIncludeNavigation = false,
+                navigateUp = navigateUp
+            ) { paddingValues ->
+                Column(modifier = Modifier.padding(paddingValues)) {
 
-                })
+                    TaskifySearchBar(onValueChange = {
 
-                when (val result = tasksState.value) {
-                    is TasksListState.Success -> {
-                        TasksWithCategories(tasksMap = result.tasks, onCompleteTask = { task ->
-                            tasksViewModel.completeTask(task)
-                        }, navigateToTaskDetails = navigateToTaskDetails, deleteTask = {
-                            tasksViewModel.putTaskOnDeletion(it)
-                            coroutineScope.launch {
-                                val snacbarResult = snackbarHostState.showSnackbar(
-                                    "You have deleted ${it.name}",
-                                    actionLabel = "Undo",
-                                    duration = SnackbarDuration.Short
-                                )
-                                when (snacbarResult) {
-                                    SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
-                                    SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
-                                        localState.groupingType,
-                                        localState.sortingType
-                                    )
-                                }
+                    })
 
-                            }
-                        })
+                    when (val result = tasksState.value) {
+                        is TasksListState.Success -> {
+                            TasksWithCategories(
+                                currentTasks = result.tasks,
+                                onCompleteTask = { task ->
+                                    tasksViewModel.completeTask(task)
+                                },
+                                navigateToTaskDetails = navigateToTaskDetails,
+                                deleteTask = {
+                                    tasksViewModel.putTaskOnDeletion(it)
+                                    coroutineScope.launch {
+                                        val snacbarResult = snackbarHostState.showSnackbar(
+                                            "You have deleted ${it.name}",
+                                            actionLabel = "Undo",
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        when (snacbarResult) {
+                                            SnackbarResult.Dismissed -> tasksViewModel.deleteTask()
+                                            SnackbarResult.ActionPerformed -> tasksViewModel.undoTasksDeletion(
+                                                localState.groupingType,
+                                                localState.sortingType
+                                            )
+                                        }
+
+                                    }
+                                })
+                        }
+
+                        is TasksListState.Empty -> {
+                            NoTasks(stringResource(id = R.string.completed_all_tasks_message))
+                        }
+
+                        else -> Unit
                     }
-
-                    is TasksListState.Empty -> {
-                        NoTasks(stringResource(id = R.string.completed_all_tasks_message))
-                    }
-
-                    else -> Unit
                 }
             }
         }

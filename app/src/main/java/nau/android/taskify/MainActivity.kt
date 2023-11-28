@@ -241,6 +241,8 @@ fun MainPage(
                     ) { backStackEntry ->
                         val quadrantId =
                             backStackEntry.arguments?.getInt(DestinationNavArgs.quadrantType)
+
+
                         QuadrantTasksList(
                             quadrantId = quadrantId,
                             alarmPermission = alarmPermission,
@@ -270,7 +272,11 @@ fun MainPage(
                                 navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/${it.id}")
                             })
                     }
-                    composable(MainDestination.Calendar.route) { TaskifyCalendar() }
+                    composable(MainDestination.Calendar.route) {
+                        TaskifyCalendar(
+                            navigateToTaskDetails = navigateToTaskDetails
+                        )
+                    }
                     composable(MainDestination.AppSettings.route) { TaskifySettings() }
                 }
 

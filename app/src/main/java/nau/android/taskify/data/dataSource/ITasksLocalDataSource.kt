@@ -15,6 +15,10 @@ interface ITasksLocalDataSource {
 
     fun getCategoryTasks(id: Long): Flow<List<Task>>
 
+    fun getCompletedTasks(): Flow<List<TaskWithCategory>>
+
+    fun getCompletedTasksOfCategory(categoryId: Long): Flow<List<Task>>
+
     fun getTaskByIdWithFlow(id: Long): Flow<Task>
 
     suspend fun getTaskById(id: Long): Task?

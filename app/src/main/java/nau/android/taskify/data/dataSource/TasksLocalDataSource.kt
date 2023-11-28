@@ -29,6 +29,15 @@ class TasksLocalDataSource @Inject constructor(private val tasksDatabase: TaskDa
         return taskDao.getCategoryTasks(id)
     }
 
+    override fun getCompletedTasks(): Flow<List<TaskWithCategory>> {
+
+        return taskDao.getCompletedTasks()
+    }
+
+    override fun getCompletedTasksOfCategory(categoryId: Long): Flow<List<Task>> {
+        return taskDao.getCategoryCompletedTasks(categoryId)
+    }
+
     override fun getTaskByIdWithFlow(id: Long): Flow<Task> {
         return taskDao.getTaskByIdWithFlow(id)
     }

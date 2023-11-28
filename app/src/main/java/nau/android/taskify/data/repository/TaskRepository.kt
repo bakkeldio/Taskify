@@ -8,6 +8,7 @@ import nau.android.taskify.data.dataSource.ITasksLocalDataSource
 import nau.android.taskify.data.model.mapper.TaskMapper
 import nau.android.taskify.data.model.mapper.TaskWithCategoryMapper
 import nau.android.taskify.ui.model.Task
+import nau.android.taskify.ui.model.TaskWithCategory
 import java.util.Calendar
 import javax.inject.Inject
 import nau.android.taskify.ui.model.TaskWithCategory as TaskWithCategoryUI
@@ -42,12 +43,28 @@ class TaskRepository @Inject constructor(
     }
 
     override fun getTasksByDate(date: Calendar): Flow<List<Task>> {
-        val clone = date.clone() as  Calendar
+        val clone = date.clone() as Calendar
         val startDateInMillis = clone.apply { set(Calendar.HOUR_OF_DAY, 0) }.timeInMillis
         val endDateInMillis = clone.apply { set(Calendar.HOUR_OF_DAY, 24) }.timeInMillis
         return localDataSource.getTasksByDate(startDateInMillis, endDateInMillis).map {
             it.map { task ->
                 taskMapper.toUI(task)
+            }
+        }
+    }
+
+    override fun getCompletedTasks(): Flow<List<TaskWithCategory>> {
+        return localDataSource.getCompletedTasks().map { tasks ->
+            tasks.map {
+                taskWithCategoryMapper.toUI(it)
+            }
+        }
+    }
+
+    override fun getCompletedTasksOfTheCategory(categoryId: Long): Flow<List<Task>> {
+        return localDataSource.getCompletedTasksOfCategory(categoryId).map { tasks ->
+            tasks.map {
+                taskMapper.toUI(it)
             }
         }
     }

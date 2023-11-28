@@ -14,9 +14,7 @@ class TasksListParameters {
     var showSortTasksBottomSheet by mutableStateOf(false)
     var groupingType by mutableStateOf(GroupingType.None)
     var sortingType by mutableStateOf(SortingType.Date)
-    var showDataPickerDialog by mutableStateOf(false)
     var inMultiSelection by mutableStateOf(false)
     var showCategoriesBottomSheet by mutableStateOf(false)
     var selectedTasks by mutableStateOf(emptySet<Task>())
-    var showUndoSnackBar by mutableStateOf(false)
 }

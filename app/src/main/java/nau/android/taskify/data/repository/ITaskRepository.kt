@@ -15,6 +15,10 @@ interface ITaskRepository {
 
     fun getTasksByDate(date: Calendar): Flow<List<Task>>
 
+    fun getCompletedTasks(): Flow<List<TaskWithCategory>>
+
+    fun getCompletedTasksOfTheCategory(categoryId: Long): Flow<List<Task>>
+
     suspend fun updateTask(task: Task)
 
     suspend fun deleteTask(task: Task)

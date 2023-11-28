@@ -1,7 +1,6 @@
 package nau.android.taskify.ui.tasksList
 
 import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -9,8 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import nau.android.taskify.data.extensions.isItImportant
@@ -21,10 +19,9 @@ import nau.android.taskify.ui.alarm.CompleteTask
 import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
 import nau.android.taskify.ui.enums.DateEnum
 import nau.android.taskify.ui.enums.TaskRepeatInterval
-import nau.android.taskify.ui.extensions.updateDate
-import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
+import java.lang.Thread.State
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -35,7 +32,7 @@ class TaskListViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val completeTask: CompleteTask
 ) :
-    ViewModel() {
+    BaseTaskViewModel(taskRepository, alarmScheduler, completeTask) {
 
 
     private val _taskWithCategoriesState: MutableStateFlow<TasksListState> =
@@ -46,33 +43,22 @@ class TaskListViewModel @Inject constructor(
         MutableStateFlow(CategoryTasksListState.Loading)
     val categoryTasksState: StateFlow<CategoryTasksListState> = _categoryTasksState
 
+
+    private val _completedTasks: MutableStateFlow<List<TaskWithCategory>> =
+        MutableStateFlow(emptyList())
+    val completedTasks: StateFlow<List<TaskWithCategory>> = _completedTasks
+
+    private val _categoryCompletedTasks: MutableStateFlow<List<Task>> =
+        MutableStateFlow(emptyList())
+    val categoryCompletedTasks: StateFlow<List<Task>> = _categoryCompletedTasks
+
+
     private var taskOnDeletion: Task? = null
-
-    fun createTask(task: Task) {
-
-        viewModelScope.launch {
-            val id = taskRepository.createTask(task)
-            Log.d("Created task id: ", id.toString())
-            if (task.dueDate != null && task.timeIncluded) {
-                alarmScheduler.scheduleTaskAlarm(id, task.dueDate.timeInMillis)
-            }
-        }
-    }
 
     fun deleteTask() {
         val task = taskOnDeletion ?: return
-        viewModelScope.launch {
-            taskRepository.deleteTask(task)
-            alarmScheduler.cancelTaskAlarm(task.id)
-            taskOnDeletion = null
-        }
-    }
-
-    fun completeTask(task: Task) {
-        viewModelScope.launch {
-            delay(500)
-            completeTask(task.id)
-        }
+        deleteTask(task)
+        taskOnDeletion = null
     }
 
     fun deleteTasks(selectedTasks: Set<Task>) {
@@ -123,7 +109,7 @@ class TaskListViewModel @Inject constructor(
                     }
                 }
                 val groupedTasks =
-                    if (tasks.isNotEmpty()) mapToKeyValue(tasks, groupingType) else emptyMap()
+                    if (tasks.isNotEmpty()) groupTasks(tasks, groupingType) else emptyMap()
                 sortTasksListWithCategories(sortingType, groupedTasks)
             }.catch {
                 _taskWithCategoriesState.value = TasksListState.Error(it)
@@ -132,6 +118,18 @@ class TaskListViewModel @Inject constructor(
                     _taskWithCategoriesState.value = TasksListState.Empty
                 } else {
                     _taskWithCategoriesState.value = TasksListState.Success(it)
+                }
+            }
+        }
+    }
+
+    fun getCompletedTasks(sortingType: SortingType = SortingType.Date, categoryId: Long? = null) {
+        viewModelScope.launch {
+            if (categoryId != null) {
+                taskRepository.getCompletedTasksOfTheCategory(categoryId).catch {
+
+                }.collectLatest {
+                    _categoryCompletedTasks.value = it
                 }
             }
         }
@@ -191,7 +189,7 @@ class TaskListViewModel @Inject constructor(
         viewModelScope.launch {
             taskRepository.getAllTasksWithCategories().map { items ->
                 val groupedItems =
-                    if (items.isNotEmpty()) mapToKeyValue(items, groupingType) else emptyMap()
+                    if (items.isNotEmpty()) groupTasks(items, groupingType) else emptyMap()
                 sortTasksListWithCategories(sortingType, groupedItems)
             }.catch {
                 _taskWithCategoriesState.value = TasksListState.Error(it)
@@ -281,7 +279,7 @@ class TaskListViewModel @Inject constructor(
             }
         }
 
-    private fun mapToKeyValue(
+    private fun groupTasks(
         items: List<TaskWithCategory>,
         groupingType: GroupingType
     ): Map<HeaderType, List<TaskWithCategory>> {
