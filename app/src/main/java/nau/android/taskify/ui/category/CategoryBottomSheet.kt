@@ -36,6 +36,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.launch
 import nau.android.taskify.R
 import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
@@ -58,16 +60,50 @@ import kotlin.math.min
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryBottomSheet(categoryId: Long = 0L, onDismiss: () -> Unit) {
+fun CategoryBottomSheet(
+    categoryId: Long = 0L,
+    categoryCreateViewModel: CategoryCreateViewModel = hiltViewModel(),
+    categoryUpdateViewModel: CategoryEditViewModel = hiltViewModel(),
+    onDismiss: () -> Unit
+) {
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val coroutineScope = rememberCoroutineScope()
 
     ModalBottomSheet(onDismissRequest = {
         onDismiss()
-    }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    }, sheetState = sheetState) {
         val colors = CategoryColors.values().map { it.value }
         if (categoryId == 0L) {
-            NewCategory(colorsList = colors, onDismiss = onDismiss)
+            NewCategory(colorsList = colors, createCategory = {
+                categoryCreateViewModel.createCategory(it)
+                coroutineScope.launch {
+                    sheetState.hide()
+                }.invokeOnCompletion {
+                    onDismiss()
+                }
+            }, onDismiss = onDismiss)
         } else {
-            ExistingCategory(categoryId = categoryId, colorsList = colors, onDismiss = onDismiss)
+            LaunchedEffect(key1 = true) {
+                categoryUpdateViewModel.getCategoryById(categoryId)
+            }
+            val categoryState = categoryUpdateViewModel.categoryLiveData.observeAsState()
+
+            val category =
+                (categoryState.value as? CategoryState.Success ?: return@ModalBottomSheet).category
+            ExistingCategory(
+                category = category,
+                colorsList = colors,
+                onDismiss = onDismiss,
+                onCategoryUpdate = {
+                    categoryUpdateViewModel.editCategory(it)
+                    coroutineScope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onDismiss()
+                    }
+                })
         }
     }
 }
@@ -75,42 +111,29 @@ fun CategoryBottomSheet(categoryId: Long = 0L, onDismiss: () -> Unit) {
 @Composable
 private fun NewCategory(
     colorsList: List<Color>,
-    categoryCreateViewModel: CategoryCreateViewModel = hiltViewModel(),
+    createCategory: (Category) -> Unit,
     onDismiss: () -> Unit
 ) {
 
     CommonContent(
         category = createEmptyCategory(), action = Action.CREATE, colorsList = colorsList, save = {
-            categoryCreateViewModel.createCategory(it)
+            createCategory(it)
+            onDismiss()
         }, onDismiss = onDismiss
     )
 }
 
 @Composable
 private fun ExistingCategory(
-    categoryId: Long,
+    category: Category,
     colorsList: List<Color>,
-    categoryEditViewModel: CategoryEditViewModel = hiltViewModel(),
+    onCategoryUpdate: (Category) -> Unit,
     onDismiss: () -> Unit
 ) {
-    LaunchedEffect(true) {
-        categoryEditViewModel.getCategoryById(categoryId)
-    }
-    val categoryState = categoryEditViewModel.categoryLiveData.observeAsState()
 
-    when (val result = categoryState.value) {
-
-        is CategoryState.Success -> {
-            CommonContent(category = result.category, action = Action.UPDATE, colorsList, save = {
-                categoryEditViewModel.editCategory(it)
-            }, onDismiss = onDismiss)
-        }
-
-        is CategoryState.Empty -> {}
-
-        else -> Unit
-    }
-
+    CommonContent(category = category, action = Action.UPDATE, colorsList, save = {
+        onCategoryUpdate(it)
+    }, onDismiss = onDismiss)
 }
 
 @Composable

@@ -1,10 +1,7 @@
 package nau.android.taskify.ui.tasksList
 
-import android.util.Log
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -19,9 +16,10 @@ import nau.android.taskify.ui.alarm.CompleteTask
 import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
 import nau.android.taskify.ui.enums.DateEnum
 import nau.android.taskify.ui.enums.TaskRepeatInterval
+import nau.android.taskify.ui.extensions.Debouncer
+import nau.android.taskify.ui.extensions.updateDate
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
-import java.lang.Thread.State
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -30,7 +28,8 @@ import javax.inject.Inject
 class TaskListViewModel @Inject constructor(
     private val taskRepository: ITaskRepository,
     private val alarmScheduler: AlarmScheduler,
-    private val completeTask: CompleteTask
+    completeTask: CompleteTask,
+    private val debouncer: Debouncer
 ) :
     BaseTaskViewModel(taskRepository, alarmScheduler, completeTask) {
 
@@ -74,15 +73,44 @@ class TaskListViewModel @Inject constructor(
         }
     }
 
+    fun completeTasks(selectedTasks: List<Task>) {
+        viewModelScope.launch {
+            taskRepository.updateTasks(selectedTasks.map {
+                it.copy(completed = true)
+            })
+            selectedTasks.filter {
+                it.timeIncluded || it.repeatInterval != TaskRepeatInterval.NONE
+            }.forEach {
+                alarmScheduler.cancelTaskAlarm(it.id)
+            }
+        }
+    }
+
+    fun moveTasks(selectedTasks: List<Task>, categoryId: Long) {
+        viewModelScope.launch {
+            taskRepository.updateTasks(selectedTasks.map {
+                it.copy(categoryId = categoryId)
+            })
+        }
+    }
+
+    fun getCompletedTasks() {
+        viewModelScope.launch {
+            taskRepository.getCompletedTasks().collectLatest {
+                _completedTasks.value  = it
+            }
+        }
+    }
 
     fun getEisenhowerQuadrantTasks(
+        query: String = "",
         groupingType: GroupingType,
         sortingType: SortingType,
         eisenhowerMatrixQuadrant: EisenhowerMatrixQuadrant
     ) {
 
         viewModelScope.launch {
-            taskRepository.getAllTasksWithCategories().map {
+            taskRepository.getAllTasksWithCategories(query).map {
                 val tasks = when (eisenhowerMatrixQuadrant) {
                     EisenhowerMatrixQuadrant.IMPORTANT_URGENT -> {
                         it.filter { taskWithCategory ->
@@ -181,13 +209,23 @@ class TaskListViewModel @Inject constructor(
                     _categoryTasksState.value = CategoryTasksListState.Success(it)
                 }
             }
-
         }
     }
 
-    fun getAllTasks(groupingType: GroupingType, sortingType: SortingType = SortingType.Date) {
+
+    fun launchAllTasks(query: String = "", groupingType: GroupingType, sortingType: SortingType) {
         viewModelScope.launch {
-            taskRepository.getAllTasksWithCategories().map { items ->
+            getAllTasks(query = query, groupingType = groupingType, sortingType = sortingType)
+        }
+    }
+
+    private suspend fun getAllTasks(
+        query: String = "",
+        groupingType: GroupingType,
+        sortingType: SortingType = SortingType.Date
+    ) {
+        taskRepository.getAllTasksWithCategories(query.ifEmpty { null })
+            .map { items ->
                 val groupedItems =
                     if (items.isNotEmpty()) groupTasks(items, groupingType) else emptyMap()
                 sortTasksListWithCategories(sortingType, groupedItems)
@@ -200,6 +238,12 @@ class TaskListViewModel @Inject constructor(
                     _taskWithCategoriesState.value = TasksListState.Success(items)
                 }
             }
+
+    }
+
+    fun searchThroughAllTasks(query: String, groupingType: GroupingType, sortingType: SortingType) {
+        debouncer(viewModelScope) {
+            getAllTasks(query, groupingType, sortingType)
         }
     }
 
@@ -248,7 +292,9 @@ class TaskListViewModel @Inject constructor(
     }
 
     fun undoTasksDeletion(groupingType: GroupingType, sortingType: SortingType) {
-        getAllTasks(groupingType, sortingType)
+        viewModelScope.launch {
+            getAllTasks(groupingType = groupingType, sortingType = sortingType)
+        }
     }
 
     fun undoCategoryTasksDeletion(

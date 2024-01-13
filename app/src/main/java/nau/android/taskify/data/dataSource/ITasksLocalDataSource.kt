@@ -7,7 +7,7 @@ import java.util.Calendar
 
 interface ITasksLocalDataSource {
 
-    fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+    fun getAllTasksWithCategories(query: String?): Flow<List<TaskWithCategory>>
 
     fun getTasksByDate(startDateInMillis: Long, endDateInMillis: Long): Flow<List<Task>>
 
@@ -30,6 +30,8 @@ interface ITasksLocalDataSource {
     suspend fun deleteMultipleTasks(tasks: List<Task>)
 
     suspend fun updateTask(task: Task)
+
+    suspend fun updateTasks(tasks: List<Task>)
 
     suspend fun createTask(task: Task): Long
 }

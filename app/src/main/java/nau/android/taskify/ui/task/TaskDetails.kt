@@ -37,7 +37,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -238,9 +240,7 @@ fun TaskDetailsStateSuccess(
     }
 
     val focusManager = LocalFocusManager.current
-
-    val categorySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
+    
     val taskDetailSheetState = rememberModalBottomSheetState()
 
     val keyboardState = keyboardAsState()
@@ -338,11 +338,11 @@ fun TaskDetailsStateSuccess(
 
         TaskifyTextField(
             value = taskTitle,
-            placeHolder = "What would you like to do?",
+            placeHolder = stringResource(id = R.string.task_title_placehoder_text),
             onValueChange = { newTitle ->
                 updateTaskTitle(newTitle)
                 taskTitle = newTitle
-            })
+            }, textStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
         TaskifyTextField(
             Modifier.padding(top = 5.dp),
             value = taskDescription ?: "",

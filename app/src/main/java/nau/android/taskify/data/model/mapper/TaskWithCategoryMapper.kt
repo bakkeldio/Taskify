@@ -1,6 +1,5 @@
 package nau.android.taskify.data.model.mapper
 
-import dagger.hilt.android.scopes.ActivityScoped
 import nau.android.taskify.data.model.TaskWithCategory
 import javax.inject.Inject
 import javax.inject.Singleton

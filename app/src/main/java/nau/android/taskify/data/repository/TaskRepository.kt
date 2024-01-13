@@ -1,8 +1,7 @@
 package nau.android.taskify.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMap
-import kotlinx.coroutines.flow.flatMapConcat
+
 import kotlinx.coroutines.flow.map
 import nau.android.taskify.data.dataSource.ITasksLocalDataSource
 import nau.android.taskify.data.model.mapper.TaskMapper
@@ -18,8 +17,8 @@ class TaskRepository @Inject constructor(
     private val taskWithCategoryMapper: TaskWithCategoryMapper,
     private val taskMapper: TaskMapper
 ) : ITaskRepository {
-    override fun getAllTasksWithCategories(): Flow<List<TaskWithCategoryUI>> {
-        return localDataSource.getAllTasksWithCategories().map { taskWithCategory ->
+    override fun getAllTasksWithCategories(query: String?): Flow<List<TaskWithCategoryUI>> {
+        return localDataSource.getAllTasksWithCategories(query).map { taskWithCategory ->
             taskWithCategory.map {
                 taskWithCategoryMapper.toUI(it)
             }
@@ -71,6 +70,12 @@ class TaskRepository @Inject constructor(
 
     override suspend fun updateTask(task: Task) {
         localDataSource.updateTask(taskMapper.toRepo(task))
+    }
+
+    override suspend fun updateTasks(tasks: List<Task>) {
+        localDataSource.updateTasks(tasks.map {
+            taskMapper.toRepo(it)
+        })
     }
 
     override suspend fun deleteTask(task: Task) {

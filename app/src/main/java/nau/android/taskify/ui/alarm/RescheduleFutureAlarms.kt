@@ -19,7 +19,7 @@ class RescheduleFutureAlarms @Inject constructor(
      * Reschedule scheduled and misses repeating tasks.
      */
     suspend operator fun invoke() {
-        val uncompletedAlarms = taskRepository.getAllTasksWithCategories().first().filterNot {
+        val uncompletedAlarms = taskRepository.getAllTasksWithCategories(null).first().filterNot {
             it.task.completed
         }
         val futureAlarms = uncompletedAlarms.filter { isInFuture(it.task.dueDate) }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -20,7 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -65,20 +68,42 @@ internal val LocalDragTargetInfo = compositionLocalOf {
 @Composable
 fun EisenhowerMatrix(
     mainDestination: MainDestination, matrixViewModel: EisenhowerViewModel = hiltViewModel(),
-    navigateToListDetails: (EisenhowerMatrixQuadrant) -> Unit
+    navigateToListDetails: (EisenhowerMatrixQuadrant) -> Unit,
+    navigateToTaskDetails: (Task) -> Unit
 ) {
 
     val matrixState =
         matrixViewModel.getTasks().collectAsStateWithLifecycle(initialValue = MatrixState.Loading)
+
+    var showEditMatrixBottomSheet by remember {
+        mutableStateOf(false)
+    }
 
     Scaffold(topBar = {
         TopAppBar(
             title = {
                 Text(text = mainDestination.title)
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+            actions = {
+                IconButton(onClick = {
+                    showEditMatrixBottomSheet = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = stringResource(id = R.string.edit_icon)
+                    )
+                }
+            }
         )
     }, contentWindowInsets = WindowInsets(bottom = 0.dp)) { paddingValues ->
+
+
+        if (showEditMatrixBottomSheet) {
+            MatrixEditBottomSheet(onDismiss = {
+                showEditMatrixBottomSheet = false
+            })
+        }
 
         DraggableScreen {
 
@@ -93,7 +118,8 @@ fun EisenhowerMatrix(
                         MatrixScreen(
                             result.matrixModel,
                             matrixViewModel,
-                            navigateToListDetails = navigateToListDetails
+                            navigateToListDetails = navigateToListDetails,
+                            navigateToTaskDetails = navigateToTaskDetails
                         )
                     }
 
@@ -115,6 +141,7 @@ fun EisenhowerMatrix(
 fun ColumnScope.MatrixScreen(
     matrixModel: EisenhowerMatrixModel,
     viewModel: EisenhowerViewModel,
+    navigateToTaskDetails: (Task) -> Unit,
     navigateToListDetails: (EisenhowerMatrixQuadrant) -> Unit
 ) {
 
@@ -142,7 +169,9 @@ fun ColumnScope.MatrixScreen(
             },
             completeTask = {
                 viewModel.completeTask(it)
-            }, navigateToListDetails = navigateToListDetails
+            },
+            navigateToListDetails = navigateToListDetails,
+            navigateToTaskDetails = navigateToTaskDetails
         )
         MatrixQuadrant(
             EisenhowerMatrixQuadrant.NOT_URGENT_IMPORTANT,
@@ -156,7 +185,8 @@ fun ColumnScope.MatrixScreen(
             },
             completeTask = {
                 viewModel.completeTask(it)
-            }, navigateToListDetails = navigateToListDetails
+            }, navigateToListDetails = navigateToListDetails,
+            navigateToTaskDetails = navigateToTaskDetails
         )
     }
     Row(
@@ -178,7 +208,9 @@ fun ColumnScope.MatrixScreen(
             },
             completeTask = {
                 viewModel.completeTask(it)
-            }, navigateToListDetails = navigateToListDetails
+            },
+            navigateToListDetails = navigateToListDetails,
+            navigateToTaskDetails = navigateToTaskDetails
         )
         MatrixQuadrant(
             EisenhowerMatrixQuadrant.NOT_URGENT_UNIMPORTANT,
@@ -192,7 +224,9 @@ fun ColumnScope.MatrixScreen(
             },
             completeTask = {
                 viewModel.completeTask(it)
-            }, navigateToListDetails = navigateToListDetails
+            },
+            navigateToListDetails = navigateToListDetails,
+            navigateToTaskDetails = navigateToTaskDetails
         )
     }
 }
@@ -312,6 +346,7 @@ fun RowScope.MatrixQuadrant(
     quadrantContainingDragTarget: EisenhowerMatrixQuadrant?,
     changeQuadrantContainingDragTarget: (EisenhowerMatrixQuadrant?) -> Unit,
     navigateToListDetails: (EisenhowerMatrixQuadrant) -> Unit,
+    navigateToTaskDetails: (Task) -> Unit,
     updateTask: (Task) -> Unit,
     completeTask: (Task) -> Unit
 ) {
@@ -352,7 +387,7 @@ fun RowScope.MatrixQuadrant(
             this.maxWidth,
             quadrant = matrixQuadrant,
             list = tasks,
-            navigateToTaskDetails = {},
+            navigateToTaskDetails = navigateToTaskDetails,
             onCompleteTask = {
                 completeTask(
                     it
@@ -373,21 +408,29 @@ enum class EisenhowerMatrixQuadrant(
     val id: Int,
     val titleR: Int,
     val color: Color,
-    val icon: Int? = null
+    val icon: Int
 ) {
     IMPORTANT_URGENT(
         1,
-        R.string.urgent_and_important, Color(0xFFEF5350)
+        R.string.urgent_and_important, Color(0xFFEF5350),
+        R.drawable.ic_roman_one
     ),
     NOT_URGENT_IMPORTANT(
         2,
-        R.string.not_urgent_and_important, Color(0xFFF6BE00)
+        R.string.not_urgent_and_important, Color(0xFFF6BE00),
+        R.drawable.ic_roman_2
     ),
     URGENT_UNIMPORTANT(
         3,
-        R.string.urgent_and_not_important, Color(0xFF4169E1)
+        R.string.urgent_and_not_important, Color(0xFF4169E1),
+        R.drawable.ic_roman_3
     ),
-    NOT_URGENT_UNIMPORTANT(4, R.string.not_urgent_and_not_important, Color(0xFF228B22));
+    NOT_URGENT_UNIMPORTANT(
+        4,
+        R.string.not_urgent_and_not_important,
+        Color(0xFF228B22),
+        R.drawable.ic_roman_4
+    );
 
     companion object {
         fun getMatrixQuadrantById(id: Int): EisenhowerMatrixQuadrant {

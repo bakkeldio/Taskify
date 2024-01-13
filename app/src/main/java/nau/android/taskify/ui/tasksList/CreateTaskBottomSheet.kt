@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -138,7 +139,8 @@ fun CreateTaskBottomSheet(
             onDismissBottomSheet()
         },
         windowInsets = WindowInsets.ime.union(WindowInsets.navigationBars),
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
 
         TaskifyTextField(
@@ -280,7 +282,8 @@ fun TaskifyCategorySelectionDropDownMenu(
                         }, leadingIcon = {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_category),
-                                contentDescription = "category_icon"
+                                contentDescription = "category_icon",
+                                tint = Color(category.color)
                             )
                         })
 

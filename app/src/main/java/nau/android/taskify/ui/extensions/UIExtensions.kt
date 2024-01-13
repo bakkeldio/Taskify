@@ -133,7 +133,9 @@ fun Calendar.applyColorForDateTime(date: String): AnnotatedString {
     return buildAnnotatedString {
         withStyle(
             SpanStyle(
-                color = if (this@applyColorForDateTime[Calendar.YEAR] == currentDate[Calendar.YEAR] && this@applyColorForDateTime[Calendar.MONTH] == currentDate[Calendar.MONTH] && this@applyColorForDateTime[Calendar.DAY_OF_MONTH] == currentDate[Calendar.DAY_OF_MONTH]) MaterialTheme.colorScheme.primary else if (currentDate.before(
+                color = if (this@applyColorForDateTime[Calendar.YEAR] == currentDate[Calendar.YEAR] &&
+                    this@applyColorForDateTime[Calendar.MONTH] == currentDate[Calendar.MONTH] && this@applyColorForDateTime[Calendar.DAY_OF_MONTH] == currentDate[Calendar.DAY_OF_MONTH]) MaterialTheme.colorScheme.primary
+                else if (currentDate.before(
                         this@applyColorForDateTime
                     )
                 ) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error

@@ -24,14 +24,20 @@ interface TaskDao {
     @Update
     suspend fun update(task: Task)
 
+    @Update
+    suspend fun updateTasks(tasks: List<Task>)
+
     @Delete
     suspend fun deleteTask(task: Task)
 
     @Delete
     suspend fun deleteTasks(tasks: List<Task>)
 
-    @Query("select * from task left join category on task.task_id = category_id where not task_is_completed")
-    fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+    @Query(
+        "select * from task left join category on task.task_category_id = category_id where not task_is_completed " +
+                "and (:searchQuery is NULL OR task_name LIKE '%' || :searchQuery || '%')"
+    )
+    fun getAllTasksWithCategories(searchQuery: String?): Flow<List<TaskWithCategory>>
 
     @Query("select * from task where not task_is_completed")
     fun getAllTasks(): Flow<List<Task>>
@@ -39,13 +45,13 @@ interface TaskDao {
     @Query("select * from task where task_category_id=:categoryId and task_is_completed")
     fun getCategoryCompletedTasks(categoryId: Long): Flow<List<Task>>
 
-    @Query("select * from task left join category on task.task_id = category_id where task_is_completed")
+    @Query("select * from task left join category on task.task_category_id = category_id where task_is_completed")
     fun getCompletedTasks(): Flow<List<TaskWithCategory>>
 
-    @Query("select * from task where task_category_id=:categoryId")
+    @Query("select * from task where task_category_id=:categoryId and not task_is_completed")
     fun getCategoryTasks(categoryId: Long): Flow<List<Task>>
 
-    @Query("select * from task where task_due_date >= :startDateInMillis AND task_due_date < :endDateInMillis")
+    @Query("select * from task where not task_is_completed and (task_due_date >= :startDateInMillis AND task_due_date < :endDateInMillis)")
     fun getTasksByDate(startDateInMillis: Long, endDateInMillis: Long): Flow<List<Task>>
 
     @Query("select * from task where task_id=:id")

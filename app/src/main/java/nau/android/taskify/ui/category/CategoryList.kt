@@ -1,5 +1,8 @@
 package nau.android.taskify.ui.category
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,9 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
 import nau.android.taskify.ui.MainDestination
-import nau.android.taskify.ui.calendar.CalendarTasksListState
 import nau.android.taskify.ui.customElements.NoCategories
-import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.searchBars.TaskifySearchBar
 
@@ -55,6 +56,10 @@ fun CategoriesList(
         mutableStateOf(false)
     }
 
+    var categoryId by remember {
+        mutableStateOf<Long>(0L)
+    }
+
     Scaffold(topBar = {
         TopAppBar(
             title = {
@@ -71,7 +76,7 @@ fun CategoriesList(
         if (categoryBottomSheetOpen) {
             CategoryBottomSheet(onDismiss = {
                 categoryBottomSheetOpen = false
-            })
+            }, categoryId = categoryId)
         }
 
         Column(
@@ -85,7 +90,11 @@ fun CategoriesList(
                 is CategoriesListState.Success -> {
                     CategoriesLoaded(
                         categories = result.categories,
-                        onCategoryClicked = navigateToCategoryTasksList
+                        onCategoryClicked = navigateToCategoryTasksList,
+                        onCategoryLongClicked = {
+                            categoryId = it
+                            categoryBottomSheetOpen = true
+                        }
                     )
                 }
 
@@ -102,13 +111,21 @@ fun CategoriesList(
 }
 
 @Composable
-fun CategoriesLoaded(categories: List<Category>, onCategoryClicked: (Long) -> Unit) {
+fun CategoriesLoaded(
+    categories: List<Category>,
+    onCategoryClicked: (Long) -> Unit,
+    onCategoryLongClicked: (Long) -> Unit
+) {
     LazyColumn(
         content = {
             items(categories, key = {
                 it.id
             }) {
-                CategoryItem(category = it, onCategoryClicked = onCategoryClicked)
+                CategoryItem(
+                    category = it,
+                    onCategoryClicked = onCategoryClicked,
+                    onLongClickCategory = onCategoryLongClicked
+                )
             }
         },
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -117,15 +134,27 @@ fun CategoriesLoaded(categories: List<Category>, onCategoryClicked: (Long) -> Un
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun CategoryItem(category: Category, onCategoryClicked: (Long) -> Unit) {
+fun CategoryItem(
+    category: Category,
+    onCategoryClicked: (Long) -> Unit,
+    onLongClickCategory: (Long) -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .noRippleClickable {
-                onCategoryClicked(category.id)
-            },
+            .combinedClickable(
+                onClick = {
+                    onCategoryClicked(category.id)
+                }, onLongClick = {
+                    onLongClickCategory(category.id)
+                }, indication = null,
+                interactionSource = remember {
+                    MutableInteractionSource()
+                }
+            ),
         color = MaterialTheme.colorScheme.surface
     ) {
 

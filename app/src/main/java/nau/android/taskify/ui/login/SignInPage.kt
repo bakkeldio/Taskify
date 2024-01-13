@@ -94,7 +94,7 @@ fun LoginWithEmailPassword(
                     navigateUp()
                 }
             },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
         )
     }, snackbarHost = {
         SnackbarHost(snackBarHostState) {
@@ -104,7 +104,7 @@ fun LoginWithEmailPassword(
                 contentColor = MaterialTheme.colorScheme.onSurface
             )
         }
-    }) { paddingValues ->
+    }, containerColor = Color.White) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
 
             SignInPage(

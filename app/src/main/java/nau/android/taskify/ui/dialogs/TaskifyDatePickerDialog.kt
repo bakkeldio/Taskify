@@ -491,7 +491,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
         verticalAlignment = Alignment.CenterVertically,
         content = {
             IconButton(onClick = {
-                currentMonth.minusMonth()
+                onMonthChange(currentMonth.minusMonth())
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -505,7 +505,7 @@ private fun CalendarHeader(currentMonth: Calendar, onMonthChange: (Calendar) -> 
             )
 
             IconButton(onClick = {
-                currentMonth.addMonth()
+                onMonthChange(currentMonth.addMonth())
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,

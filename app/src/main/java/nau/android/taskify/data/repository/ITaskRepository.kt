@@ -7,7 +7,7 @@ import java.util.Calendar
 
 interface ITaskRepository {
 
-    fun getAllTasksWithCategories(): Flow<List<TaskWithCategory>>
+    fun getAllTasksWithCategories(query: String?): Flow<List<TaskWithCategory>>
 
     fun getAllTasks(): Flow<List<Task>>
 
@@ -20,6 +20,7 @@ interface ITaskRepository {
     fun getCompletedTasksOfTheCategory(categoryId: Long): Flow<List<Task>>
 
     suspend fun updateTask(task: Task)
+    suspend fun updateTasks(tasks: List<Task>)
 
     suspend fun deleteTask(task: Task)
 

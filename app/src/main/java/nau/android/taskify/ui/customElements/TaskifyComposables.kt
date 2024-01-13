@@ -47,6 +47,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 import nau.android.taskify.R
@@ -89,24 +91,31 @@ fun TaskifyTextField(
     value: String,
     placeHolder: String = "",
     maxLines: Int = 2,
+    textStyle: TextStyle = MaterialTheme.typography.bodyLarge,
     onValueChange: (String) -> Unit,
 ) {
-    TextField(value = value, onValueChange = { newValue ->
-        onValueChange(newValue)
-    }, placeholder = {
-        if (placeHolder.isNotEmpty()) {
-            Text(text = placeHolder)
-        }
-    }, colors = TextFieldDefaults.colors(
-        focusedIndicatorColor = Color.Transparent,
-        errorIndicatorColor = Color.Transparent,
-        disabledIndicatorColor = Color.Transparent,
-        unfocusedIndicatorColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-        focusedContainerColor = Color.Transparent,
-        disabledContainerColor = Color.Transparent,
-        errorContainerColor = Color.Transparent
-    ), maxLines = maxLines, modifier = modifier
+    TextField(value = value,
+        onValueChange = { newValue ->
+            onValueChange(newValue)
+        },
+        placeholder = {
+            if (placeHolder.isNotEmpty()) {
+                Text(text = placeHolder)
+            }
+        },
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
+            errorContainerColor = Color.Transparent
+        ),
+        maxLines = maxLines,
+        modifier = modifier,
+        textStyle = textStyle
     )
 }
 

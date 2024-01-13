@@ -76,9 +76,7 @@ fun SmallerSearchBar(modifier: Modifier, value: String = "", onValueChange: (Str
 fun TaskifySearchBar(modifier: Modifier = Modifier, value: String = "", onValueChange: (String) -> Unit) {
     TextField(
         value = value,
-        onValueChange = {
-            onValueChange(it)
-        },
+        onValueChange = onValueChange,
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search, contentDescription = null

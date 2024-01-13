@@ -26,7 +26,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismiss
@@ -34,10 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -64,11 +61,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import dagger.hilt.android.AndroidEntryPoint
-import nau.android.taskify.ui.GoogleAuthClient
-import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.DestinationNavArgs
+import nau.android.taskify.ui.GoogleAuthClient
 import nau.android.taskify.ui.LoginDestination
 import nau.android.taskify.ui.MainAppViewModel
+import nau.android.taskify.ui.MainDestination
 import nau.android.taskify.ui.alarm.permission.AlarmPermission
 import nau.android.taskify.ui.calendar.TaskifyCalendar
 import nau.android.taskify.ui.category.CategoriesList
@@ -270,6 +267,8 @@ fun MainPage(
                             mainDestination = MainDestination.EisenhowerMatrix,
                             navigateToListDetails = {
                                 navController.navigate("${MainDestination.ListOfTasks.route}/${MainDestination.MatrixTasksList}/${it.id}")
+                            }, navigateToTaskDetails = {
+                                navigateToTaskDetails(it.id)
                             })
                     }
                     composable(MainDestination.Calendar.route) {
@@ -296,6 +295,7 @@ fun TaskItemInMultiSelection(
 
     Card(
         modifier = Modifier
+            .padding(start = 13.dp, end = 13.dp)
             .fillMaxWidth(), shape = RoundedCornerShape(10.dp)
     ) {
         TaskItemContent(
@@ -321,7 +321,7 @@ fun TaskItem(
 ) {
 
     var completed by remember {
-        mutableStateOf(false)
+        mutableStateOf(task.completed)
     }
 
     val dismissState = rememberDismissState(confirmValueChange = { dismissValue ->
@@ -335,6 +335,7 @@ fun TaskItem(
     }, dismissContent = {
         Card(
             modifier = Modifier
+                .padding(start = 13.dp, end = 13.dp)
                 .fillMaxWidth(), shape = RoundedCornerShape(10.dp)
         ) {
             TaskItemContent(

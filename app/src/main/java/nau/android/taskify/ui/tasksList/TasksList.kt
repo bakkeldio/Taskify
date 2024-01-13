@@ -6,34 +6,13 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -47,35 +26,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
+import com.google.accompanist.permissions.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import nau.android.taskify.FloatingActionButton
-import nau.android.taskify.LocalSnackbarHost
+import nau.android.taskify.*
 import nau.android.taskify.R
-import nau.android.taskify.TaskItem
-import nau.android.taskify.TaskItemInMultiSelection
 import nau.android.taskify.ui.DateInfo
 import nau.android.taskify.ui.alarm.permission.AlarmPermission
 import nau.android.taskify.ui.alarm.permission.GetGrantedNotificationPermissionState
 import nau.android.taskify.ui.category.CategoriesViewModel
-import nau.android.taskify.ui.customElements.DialogArguments
-import nau.android.taskify.ui.customElements.NoTasks
-import nau.android.taskify.ui.customElements.SelectionModeTopAppBar
-import nau.android.taskify.ui.customElements.TaskifyArrowBack
-import nau.android.taskify.ui.customElements.TaskifyDialog
-import nau.android.taskify.ui.customElements.TaskifyMenuIcon
-import nau.android.taskify.ui.customElements.TaskifyTasksListMenuDropdown
+import nau.android.taskify.ui.category.ChangeCategoryBottomSheet
+import nau.android.taskify.ui.customElements.*
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
+import nau.android.taskify.ui.extensions.keyboardAsState
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
@@ -103,95 +74,61 @@ private fun Tasks(
 
     val selectedTasks = tasksListState.selectedTasks.toHashSet()
 
-    tasksMap.forEach { map ->
 
-        Column(modifier = Modifier.padding(13.dp)) {
-            if (map.key != HeaderType.NoHeader) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        verticalAlignment = Alignment.CenterVertically
+    LazyColumn(content = {
+
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        tasksMap.forEach { map ->
+
+            item {
+                if (map.key != HeaderType.NoHeader) {
+                    TaskHeader(
+                        inMultiSelection = tasksListState.inMultiSelection,
+                        headerTitle = map.key.title,
+                        tasks = map.value,
+                        selectedTasks = selectedTasks
                     ) {
-                        if (tasksListState.inMultiSelection) {
-                            val tasks = map.value.map { it }
-                            val selected = tasksListState.selectedTasks.containsAll(tasks)
-
-                            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                                Checkbox(
-                                    checked = selected,
-                                    onCheckedChange = {
-                                        if (selected) {
-                                            selectedTasks.addAll(tasks)
-                                        } else {
-                                            selectedTasks.removeAll(tasks)
-                                        }
-                                        tasksListState.selectedTasks = selectedTasks
-                                    },
-                                    interactionSource = NoRippleInteractionSource(),
-                                    modifier = Modifier.padding(start = 15.dp, end = 15.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = map.key.title, style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-                        Text(
-                            text = "${map.value.size}",
-                            style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.outline)
-                        )
-
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Arrow down",
-                            tint = MaterialTheme.colorScheme.outline
-                        )
+                        tasksListState.selectedTasks = it
                     }
                 }
             }
-            LazyColumn(content = {
-                items(map.value) { task ->
-                    if (tasksListState.inMultiSelection) {
-                        TaskItemInMultiSelection(selected = selectedTasks.contains(task),
-                            task = task,
-                            showDetails = tasksListState.showDetails,
-                            onSelectChange = { selected ->
-                                if (selected) {
-                                    selectedTasks.add(task)
-                                } else {
-                                    selectedTasks.remove(task)
-                                }
-                                tasksListState.selectedTasks = selectedTasks
-                            })
-                    } else {
-                        TaskItem(
-                            task, showDetails = tasksListState.showDetails, onComplete = {
-                                onCompleteTask(task)
-                            }, deleteTask = deleteTask
-                        ) { taskId ->
-                            navigateToTaskDetails(taskId)
-                        }
+            items(map.value) { task ->
+
+                if (tasksListState.inMultiSelection) {
+                    TaskItemInMultiSelection(selected = selectedTasks.contains(task),
+                        task = task,
+                        showDetails = tasksListState.showDetails,
+                        onSelectChange = { selected ->
+                            if (selected) {
+                                selectedTasks.add(task)
+                            } else {
+                                selectedTasks.remove(task)
+                            }
+                            tasksListState.selectedTasks = selectedTasks
+                        })
+                } else {
+                    TaskItem(
+                        task, showDetails = tasksListState.showDetails, onComplete = {
+                            onCompleteTask(task)
+                        }, deleteTask = deleteTask
+                    ) { taskId ->
+                        navigateToTaskDetails(taskId)
                     }
                 }
-            }, verticalArrangement = Arrangement.spacedBy(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
         }
-    }
+    })
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TasksWithCategories(
-    currentTasks: Map<HeaderType, List<TaskWithCategory>>,
-    //completedTasks: List<TaskWithCategory>,
+    currentTasks: () -> Map<HeaderType, List<TaskWithCategory>>,
     navigateToTaskDetails: (Long) -> Unit,
     onCompleteTask: (Task) -> Unit,
     deleteTask: (Task) -> Unit
@@ -201,100 +138,69 @@ private fun TasksWithCategories(
 
     val selectedTasks = tasksListState.selectedTasks.toHashSet()
 
+    LazyColumn(content = {
 
-    currentTasks.forEach { map ->
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
+        }
 
-        Column(modifier = Modifier.padding(13.dp)) {
-            if (map.key != HeaderType.NoHeader) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        verticalAlignment = Alignment.CenterVertically
+        currentTasks().forEach { map ->
+
+            val hasHeader = map.key != HeaderType.NoHeader
+
+            item {
+                if (hasHeader) {
+                    TaskHeader(
+                        inMultiSelection = tasksListState.inMultiSelection,
+                        headerTitle = map.key.title,
+                        tasks = map.value.map {
+                            it.task
+                        },
+                        selectedTasks = selectedTasks
                     ) {
-                        if (tasksListState.inMultiSelection) {
-                            val tasks = map.value.map { it.task }
-                            val selected = tasksListState.selectedTasks.containsAll(tasks)
-
-                            CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
-                                Checkbox(
-                                    checked = selected,
-                                    onCheckedChange = {
-                                        if (selected) {
-                                            selectedTasks.removeAll(tasks)
-                                        } else {
-                                            selectedTasks.addAll(tasks)
-                                        }
-                                        tasksListState.selectedTasks = selectedTasks
-                                    },
-                                    interactionSource = NoRippleInteractionSource(),
-                                    modifier = Modifier.padding(start = 15.dp, end = 15.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = map.key.title, style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-                        Text(
-                            text = "${map.value.size}",
-                            style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.outline)
-                        )
-
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Arrow down",
-                            tint = MaterialTheme.colorScheme.outline
-                        )
+                        tasksListState.selectedTasks = it
                     }
                 }
             }
-            LazyColumn(content = {
-                items(map.value, key = {
-                    it.task.id
-                }) { taskWithCategory ->
-                    if (tasksListState.inMultiSelection) {
-                        TaskItemInMultiSelection(selected = selectedTasks.contains(
-                            taskWithCategory.task
-                        ),
-                            task = taskWithCategory.task,
-                            category = taskWithCategory.category,
-                            showDetails = tasksListState.showDetails,
-                            onSelectChange = { selected ->
-                                if (selected) {
-                                    selectedTasks.add(taskWithCategory.task)
-                                } else {
-                                    selectedTasks.remove(taskWithCategory.task)
-                                }
-                                tasksListState.selectedTasks = selectedTasks
-                            })
-                    } else {
-                        TaskItem(
-                            task = taskWithCategory.task,
-                            category = taskWithCategory.category,
-                            showDetails = tasksListState.showDetails,
-                            onComplete = {
-                                onCompleteTask(taskWithCategory.task)
-                            },
-                            deleteTask = deleteTask
-                        ) { taskId ->
-                            navigateToTaskDetails(taskId)
-                        }
+
+            items(map.value, key = {
+                it.task.id
+            }) { taskWithCategory ->
+
+                if (tasksListState.inMultiSelection) {
+                    TaskItemInMultiSelection(selected = selectedTasks.contains(
+                        taskWithCategory.task
+                    ),
+                        task = taskWithCategory.task,
+                        category = taskWithCategory.category,
+                        showDetails = tasksListState.showDetails,
+                        onSelectChange = { selected ->
+                            if (selected) {
+                                selectedTasks.add(taskWithCategory.task)
+                            } else {
+                                selectedTasks.remove(taskWithCategory.task)
+                            }
+                            tasksListState.selectedTasks = selectedTasks
+                        })
+                } else {
+                    TaskItem(
+                        task = taskWithCategory.task,
+                        category = taskWithCategory.category,
+                        showDetails = tasksListState.showDetails,
+                        onComplete = {
+                            onCompleteTask(taskWithCategory.task)
+                        },
+                        deleteTask = deleteTask
+                    ) { taskId ->
+                        navigateToTaskDetails(taskId)
                     }
                 }
-            }, verticalArrangement = Arrangement.spacedBy(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
-    }
-
+    })
 }
+
 
 @Composable
 fun ExactAlarmPermissionDialog(
@@ -353,7 +259,6 @@ fun MultiSelectionBottomAppBar(
                 IconButton(onClick = {
                     deleteSelectedTasks()
                     listState.inMultiSelection = false
-                    listState.selectedTasks = emptySet()
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_delete),
@@ -398,6 +303,10 @@ fun TasksListCommon(
 
     val tasksListState = LocalTasksList.current
 
+    val snackBarState = LocalSnackbarHost.current
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val dateForNewTask = remember {
         mutableStateOf(DateInfo())
     }
@@ -429,6 +338,8 @@ fun TasksListCommon(
     val showRationalePermissionDialog = remember {
         mutableStateOf(false)
     }
+
+    val coroutineScope = rememberCoroutineScope()
 
     val createTaskBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -490,6 +401,20 @@ fun TasksListCommon(
         })
     }
 
+    if (tasksListState.showCategoriesBottomSheet) {
+        ChangeCategoryBottomSheet(onCategoryChanged = {
+            tasksListViewModel.moveTasks(tasksListState.selectedTasks.toList(), it.id)
+            tasksListState.selectedTasks = emptySet()
+            coroutineScope.launch {
+                sheetState.hide()
+            }.invokeOnCompletion {
+                tasksListState.showCategoriesBottomSheet = false
+            }
+        }, sheetState = sheetState) {
+            tasksListState.showCategoriesBottomSheet = false
+        }
+    }
+
     ExactAlarmPermissionDialog(
         context = LocalContext.current, isDialogOpen = showExactAlarmDialog.value
     ) {
@@ -512,8 +437,25 @@ fun TasksListCommon(
     }, bottomBar = {
         MultiSelectionBottomAppBar(deleteSelectedTasks = {
             tasksListViewModel.putTasksOnDeletion(tasksListState.selectedTasks.toList())
-        }, markAllSelectedTasksAsDone = {
 
+            coroutineScope.launch {
+                val snackbarResult = snackBarState.showSnackbar(
+                    "You have deleted ${tasksListState.selectedTasks.size}",
+                    "Undo",
+                    duration = SnackbarDuration.Short
+                )
+                when (snackbarResult) {
+                    SnackbarResult.ActionPerformed -> tasksListViewModel.undoTasksDeletion(
+                        tasksListState.groupingType,
+                        tasksListState.sortingType
+                    )
+
+                    SnackbarResult.Dismissed -> tasksListViewModel.deleteTasks(tasksListState.selectedTasks)
+                }
+                tasksListState.selectedTasks = emptySet()
+            }
+        }, markAllSelectedTasksAsDone = {
+            tasksListViewModel.completeTasks(tasksListState.selectedTasks.toList())
         })
     }, contentWindowInsets = LocalContentWindowInsets.current) { innerPaddings ->
         content(innerPaddings)
@@ -546,7 +488,11 @@ fun QuadrantTasksList(
     val quadrant = EisenhowerMatrixQuadrant.getMatrixQuadrantById(quadrantId)
 
     LaunchedEffect(key1 = groupingType, key2 = sortingType) {
-        tasksViewModel.getEisenhowerQuadrantTasks(groupingType, sortingType, quadrant)
+        tasksViewModel.getEisenhowerQuadrantTasks(
+            groupingType = groupingType,
+            sortingType = sortingType,
+            eisenhowerMatrixQuadrant = quadrant
+        )
     }
 
     val tasks =
@@ -578,7 +524,7 @@ fun QuadrantTasksList(
                     when (val result = tasks.value) {
                         is TasksListState.Success -> {
                             TasksWithCategories(
-                                currentTasks = result.tasks,
+                                currentTasks = { result.tasks },
                                 onCompleteTask = { task ->
                                     tasksViewModel.completeTask(task)
                                 },
@@ -602,7 +548,8 @@ fun QuadrantTasksList(
                                         }
 
                                     }
-                                })
+                                }
+                            )
                         }
 
                         is TasksListState.Empty -> {
@@ -775,22 +722,49 @@ fun AllTasksList(
         TasksListParameters()
     }
 
+    var searchQuery by remember {
+        mutableStateOf("")
+    }
+
+    val focusManager = LocalFocusManager.current
+
+    val keyboardState = keyboardAsState()
+
+    if (!keyboardState.value) {
+        focusManager.clearFocus()
+    }
+
     val snackbarHostState = LocalSnackbarHost.current
 
     val coroutineScope = rememberCoroutineScope()
 
     val inMultiSelection = localState.inMultiSelection
 
-    LaunchedEffect(key1 = localState.groupingType, key2 = localState.sortingType) {
-        tasksViewModel.getAllTasks(
+    var job: Job? = null
+
+
+    LaunchedEffect(
+        key1 = localState.groupingType,
+        key2 = localState.sortingType
+    ) {
+        tasksViewModel.launchAllTasks(
+            searchQuery,
             localState.groupingType, localState.sortingType
         )
+    }
+
+    LaunchedEffect(key1 = localState.showCompleted) {
+        if (localState.showCompleted) {
+            tasksViewModel.getCompletedTasks()
+        }
     }
 
     val tasksState = tasksViewModel.tasksWithCategoriesState.collectAsStateWithLifecycle()
     LaunchedEffect(key1 = inMultiSelection) {
         onMainBottomBarVisibilityChanged(inMultiSelection)
     }
+
+    val completedTasks = tasksViewModel.completedTasks.collectAsStateWithLifecycle()
 
     CompositionLocalProvider(LocalContentWindowInsets provides WindowInsets(bottom = 0.dp)) {
 
@@ -805,14 +779,24 @@ fun AllTasksList(
             ) { paddingValues ->
                 Column(modifier = Modifier.padding(paddingValues)) {
 
-                    TaskifySearchBar(onValueChange = {
+                    TaskifySearchBar(value = searchQuery, onValueChange = {
+                        searchQuery = it
 
+                        job?.cancel()
+                        job = coroutineScope.launch {
+                            delay(400)
+                            tasksViewModel.searchThroughAllTasks(
+                                searchQuery,
+                                localState.groupingType,
+                                localState.sortingType
+                            )
+                        }
                     })
 
                     when (val result = tasksState.value) {
                         is TasksListState.Success -> {
                             TasksWithCategories(
-                                currentTasks = result.tasks,
+                                currentTasks = { result.tasks },
                                 onCompleteTask = { task ->
                                     tasksViewModel.completeTask(task)
                                 },
@@ -832,7 +816,6 @@ fun AllTasksList(
                                                 localState.sortingType
                                             )
                                         }
-
                                     }
                                 })
                         }
@@ -847,4 +830,67 @@ fun AllTasksList(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TaskHeader(
+    inMultiSelection: Boolean,
+    headerTitle: String,
+    tasks: List<Task>,
+    selectedTasks: HashSet<Task>,
+    updateSelected: (HashSet<Task>) -> Unit
+) {
+
+    Box(
+        modifier = Modifier
+            .padding(start = 13.dp, end = 13.dp, bottom = 10.dp)
+            .fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (inMultiSelection) {
+
+                val selected = selectedTasks.containsAll(tasks)
+
+                CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = {
+                            if (selected) {
+                                selectedTasks.removeAll(tasks.toSet())
+                            } else {
+                                selectedTasks.addAll(tasks)
+                            }
+                            updateSelected(selectedTasks)
+                        },
+                        interactionSource = NoRippleInteractionSource(),
+                        modifier = Modifier.padding(start = 15.dp, end = 15.dp)
+                    )
+                }
+            }
+            Text(
+                text = headerTitle, style = MaterialTheme.typography.titleSmall
+            )
+        }
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = "${tasks.size}",
+                style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.outline)
+            )
+
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Arrow down",
+                tint = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(10.dp))
 }
