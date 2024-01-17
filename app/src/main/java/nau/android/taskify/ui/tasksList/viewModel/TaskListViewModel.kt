@@ -1,4 +1,4 @@
-package nau.android.taskify.ui.tasksList
+package nau.android.taskify.ui.tasksList.viewModel
 
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,9 +17,13 @@ import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
 import nau.android.taskify.ui.enums.DateEnum
 import nau.android.taskify.ui.enums.TaskRepeatInterval
 import nau.android.taskify.ui.extensions.Debouncer
-import nau.android.taskify.ui.extensions.updateDate
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
+import nau.android.taskify.ui.tasksList.CategoryTasksListState
+import nau.android.taskify.ui.tasksList.GroupingType
+import nau.android.taskify.ui.tasksList.HeaderType
+import nau.android.taskify.ui.tasksList.SortingType
+import nau.android.taskify.ui.tasksList.TasksListState
 import java.util.Calendar
 import javax.inject.Inject
 

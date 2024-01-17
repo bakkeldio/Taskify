@@ -1,4 +1,4 @@
-package nau.android.taskify.ui.login
+package nau.android.taskify.ui.login.viewModel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import nau.android.taskify.data.model.Result
 import nau.android.taskify.data.repository.IAuthRepository
+import nau.android.taskify.ui.login.viewModel.BaseLoginViewModel
 import nau.android.taskify.ui.model.EmailSentState
 import javax.inject.Inject
 

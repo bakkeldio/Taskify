@@ -33,7 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import nau.android.taskify.R
-import nau.android.taskify.ui.GoogleAuthClient
+import nau.android.taskify.googleAuth.GoogleAuthClient
+import nau.android.taskify.ui.login.viewModel.LoginViewModel
 import nau.android.taskify.ui.theme.TaskifyTheme
 
 

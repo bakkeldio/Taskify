@@ -1,4 +1,4 @@
-package nau.android.taskify.ui.login
+package nau.android.taskify.ui.login.viewModel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

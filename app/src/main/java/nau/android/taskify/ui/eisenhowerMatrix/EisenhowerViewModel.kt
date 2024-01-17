@@ -1,7 +1,5 @@
 package nau.android.taskify.ui.eisenhowerMatrix
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,9 +13,6 @@ import nau.android.taskify.data.repository.ITaskRepository
 import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.enums.Priority
 import nau.android.taskify.ui.enums.TaskRepeatInterval
-import nau.android.taskify.ui.extensions.isItOverdue
-import nau.android.taskify.ui.extensions.isItToday
-import nau.android.taskify.ui.extensions.isItTomorrow
 import nau.android.taskify.ui.extensions.updateDate
 import nau.android.taskify.ui.model.EisenhowerMatrixModel
 import nau.android.taskify.ui.model.Task

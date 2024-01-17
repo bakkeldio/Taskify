@@ -1,7 +1,6 @@
-package nau.android.taskify.ui
+package nau.android.taskify.ui.model
 
 import nau.android.taskify.ui.enums.ReminderType
-import nau.android.taskify.ui.enums.RepeatIntervalType
 import nau.android.taskify.ui.enums.TaskRepeatInterval
 import java.util.Calendar
 

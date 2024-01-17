@@ -1,4 +1,4 @@
-package nau.android.taskify.ui.category
+package nau.android.taskify.ui.category.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

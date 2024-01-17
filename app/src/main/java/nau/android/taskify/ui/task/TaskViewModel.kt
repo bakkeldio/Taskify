@@ -6,11 +6,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import nau.android.taskify.data.repository.ICategoryRepository
 import nau.android.taskify.data.repository.ITaskRepository
-import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.model.DateInfo
 import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.alarm.CompleteTask
 import nau.android.taskify.ui.alarm.UnCompleteTask

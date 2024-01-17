@@ -43,6 +43,7 @@ import nau.android.taskify.ui.customElements.TaskifyArrowBack
 import nau.android.taskify.ui.customElements.TaskifyLoginErrorMessage
 import nau.android.taskify.ui.extensions.keyboardAsState
 import nau.android.taskify.ui.extensions.noRippleClickable
+import nau.android.taskify.ui.login.viewModel.LoginWithEmailAndPasswordViewModel
 import nau.android.taskify.ui.theme.TaskifyTheme
 
 

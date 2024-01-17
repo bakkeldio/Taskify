@@ -1,4 +1,4 @@
-package nau.android.taskify.ui.tasksList
+package nau.android.taskify.ui.tasksList.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

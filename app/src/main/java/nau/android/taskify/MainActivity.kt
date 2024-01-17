@@ -62,7 +62,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import dagger.hilt.android.AndroidEntryPoint
 import nau.android.taskify.ui.DestinationNavArgs
-import nau.android.taskify.ui.GoogleAuthClient
+import nau.android.taskify.googleAuth.GoogleAuthClient
 import nau.android.taskify.ui.LoginDestination
 import nau.android.taskify.ui.MainAppViewModel
 import nau.android.taskify.ui.MainDestination

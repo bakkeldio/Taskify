@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +35,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
@@ -45,9 +42,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.android.awaitFrame
 import nau.android.taskify.R
-import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.model.DateInfo
 import nau.android.taskify.ui.category.CategoriesListState
-import nau.android.taskify.ui.category.CategoriesViewModel
+import nau.android.taskify.ui.category.viewModel.CategoriesViewModel
 import nau.android.taskify.ui.customElements.TaskifyCreateTaskButton
 import nau.android.taskify.ui.customElements.TaskifyPrioritySelectionDropdownMenu
 import nau.android.taskify.ui.customElements.TaskifyTextField

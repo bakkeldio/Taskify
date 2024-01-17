@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nau.android.taskify.FloatingActionButton
 import nau.android.taskify.R
 import nau.android.taskify.ui.MainDestination
+import nau.android.taskify.ui.category.viewModel.CategoriesViewModel
 import nau.android.taskify.ui.customElements.NoCategories
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.searchBars.TaskifySearchBar

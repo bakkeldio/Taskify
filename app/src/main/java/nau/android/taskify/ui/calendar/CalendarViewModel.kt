@@ -1,19 +1,15 @@
 package nau.android.taskify.ui.calendar
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import nau.android.taskify.data.repository.ITaskRepository
 import nau.android.taskify.ui.alarm.AlarmScheduler
 import nau.android.taskify.ui.alarm.CompleteTask
-import nau.android.taskify.ui.model.Task
-import nau.android.taskify.ui.tasksList.BaseTaskViewModel
+import nau.android.taskify.ui.tasksList.viewModel.BaseTaskViewModel
 import java.util.Calendar
 import javax.inject.Inject
 

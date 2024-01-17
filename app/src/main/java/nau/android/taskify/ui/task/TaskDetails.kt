@@ -46,7 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import nau.android.taskify.LocalTaskifyColors
 import nau.android.taskify.R
-import nau.android.taskify.ui.DateInfo
+import nau.android.taskify.ui.model.DateInfo
 import nau.android.taskify.ui.category.ChangeCategoryBottomSheet
 import nau.android.taskify.ui.category.TaskCategoryState
 import nau.android.taskify.ui.customElements.TaskifyArrowBack
@@ -59,7 +59,6 @@ import nau.android.taskify.ui.extensions.applyColorForDateTime
 import nau.android.taskify.ui.extensions.formatTaskifyDate
 import nau.android.taskify.ui.extensions.formatToAmPm
 import nau.android.taskify.ui.extensions.keyboardAsState
-import nau.android.taskify.ui.extensions.noRippleClickable
 import nau.android.taskify.ui.extensions.toast
 import nau.android.taskify.ui.model.Task
 import java.util.Calendar

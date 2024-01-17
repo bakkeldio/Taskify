@@ -36,6 +36,7 @@ import nau.android.taskify.R
 import nau.android.taskify.ui.customElements.LoginEmail
 import nau.android.taskify.ui.customElements.TaskifyArrowBack
 import nau.android.taskify.ui.customElements.TaskifyLoginErrorMessage
+import nau.android.taskify.ui.login.viewModel.PasswordRecoveryViewModel
 import nau.android.taskify.ui.model.EmailSentState
 
 

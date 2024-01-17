@@ -1,4 +1,4 @@
-package nau.android.taskify.ui
+package nau.android.taskify.googleAuth
 
 import android.content.Context
 import android.content.Intent

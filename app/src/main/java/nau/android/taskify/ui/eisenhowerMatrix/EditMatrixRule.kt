@@ -39,7 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import nau.android.taskify.R
 import nau.android.taskify.ui.category.CategoriesListState
-import nau.android.taskify.ui.category.CategoriesViewModel
+import nau.android.taskify.ui.category.viewModel.CategoriesViewModel
 import nau.android.taskify.ui.enums.Priority
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.task.NoRippleInteractionSource
