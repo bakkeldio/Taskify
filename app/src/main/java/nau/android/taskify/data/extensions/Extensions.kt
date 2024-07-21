@@ -4,6 +4,9 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import androidx.core.app.AlarmManagerCompat
 import androidx.core.app.NotificationManagerCompat
 import nau.android.taskify.ui.enums.Priority
@@ -54,6 +57,21 @@ fun Context.getNotificationManager() =
 
 fun Int.toStringColor() =
     String.format(HexFormat, HexWhite and this)
+
+fun Context.isNetworkConnected(): Boolean {
+    val manager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+        manager.getNetworkCapabilities(manager.activeNetwork)?.let {
+            it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    it.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
+                    it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                    it.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+        } ?: false
+    else
+        @Suppress("DEPRECATION")
+        manager.activeNetworkInfo?.isConnectedOrConnecting == true
+}
 
 private const val HexFormat = "#%06X"
 

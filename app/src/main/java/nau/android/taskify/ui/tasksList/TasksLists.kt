@@ -1,6 +1,9 @@
 package nau.android.taskify.ui.tasksList
 
 import android.Manifest
+import android.media.MediaPlayer
+import android.media.SoundPool
+import android.widget.TextView
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,13 +42,16 @@ import nau.android.taskify.ui.category.ChangeCategoryBottomSheet
 import nau.android.taskify.ui.customElements.*
 import nau.android.taskify.ui.dialogs.TaskifyDatePickerDialog
 import nau.android.taskify.ui.eisenhowerMatrix.EisenhowerMatrixQuadrant
+import nau.android.taskify.ui.enums.TaskSounds
 import nau.android.taskify.ui.extensions.keyboardAsState
+import nau.android.taskify.ui.extensions.playSound
 import nau.android.taskify.ui.model.Category
 import nau.android.taskify.ui.model.Task
 import nau.android.taskify.ui.model.TaskWithCategory
 import nau.android.taskify.ui.searchBars.TaskifySearchBar
 import nau.android.taskify.ui.task.NoRippleInteractionSource
 import nau.android.taskify.ui.tasksList.viewModel.TaskListViewModel
+import kotlin.coroutines.coroutineContext
 
 
 val LocalTasksList = compositionLocalOf {
@@ -76,6 +82,7 @@ fun AllTasksList(
     navigateToTaskDetails: (Long) -> Unit,
     navigateUp: () -> Unit
 ) {
+
 
     val focusManager = LocalFocusManager.current
 
@@ -125,12 +132,14 @@ fun AllTasksList(
     LaunchedEffect(key1 = inMultiSelection) {
         onMainBottomBarVisibilityChanged(inMultiSelection)
     }
-    
-    val completedTasks = tasksViewModel.completedTasks.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    //val completedTasks = tasksViewModel.completedTasks.collectAsStateWithLifecycle()
 
     CompositionLocalProvider(LocalContentWindowInsets provides WindowInsets(bottom = 0.dp)) {
 
         CompositionLocalProvider(LocalTasksList provides localState) {
+
 
             TasksListCommon(
                 title = title,
@@ -139,6 +148,10 @@ fun AllTasksList(
                 shouldIncludeNavigation = false,
                 navigateUp = navigateUp
             ) { paddingValues ->
+
+                Column {
+
+                }
                 Column(modifier = Modifier.padding(paddingValues)) {
 
                     TaskifySearchBar(value = searchQuery, onValueChange = {
@@ -156,6 +169,7 @@ fun AllTasksList(
                             TasksWithCategories(
                                 currentTasks = { result.tasks },
                                 onCompleteTask = { task ->
+                                    TaskSounds.COMPLETED.playSound(context)
                                     tasksViewModel.completeTask(task)
                                 },
                                 navigateToTaskDetails = navigateToTaskDetails,
@@ -316,6 +330,7 @@ fun QuadrantTasksList(
     val sortingType = tasksListState.sortingType
 
     quadrantId ?: return
+
 
     val quadrant = EisenhowerMatrixQuadrant.getMatrixQuadrantById(quadrantId)
 

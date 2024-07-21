@@ -1,6 +1,8 @@
 package nau.android.taskify.ui.extensions
 
 import android.content.Context
+import android.media.MediaPlayer
+import android.media.MediaPlayer.create
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,7 +20,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
+import nau.android.taskify.R
 import nau.android.taskify.ui.enums.TaskRepeatInterval
+import nau.android.taskify.ui.enums.TaskSounds
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -196,4 +200,16 @@ fun Calendar.isItNextSevenDays(): Boolean {
 fun Calendar.isItOverdue(): Boolean {
     val currentDate = Calendar.getInstance()
     return before(currentDate)
+}
+
+//Play media
+
+fun TaskSounds.playSound(context: Context) {
+    var mediaPlayer = create(context, resourceId)
+    if (mediaPlayer.isPlaying){
+        mediaPlayer.stop()
+        mediaPlayer.release()
+        mediaPlayer = create(context, resourceId)
+    }
+    mediaPlayer.start()
 }

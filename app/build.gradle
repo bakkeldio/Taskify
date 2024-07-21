@@ -51,15 +51,17 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion '1.4.4'
     }
-    packagingOptions {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
-        }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) {
+        it.packaging.resources.excludes.add("META-INF/**")
     }
 }
 
 dependencies {
 
+    testImplementation 'junit:junit:4.12'
     def nav_version = "2.7.4"
 
     def room_version = "2.6.0"
@@ -95,6 +97,23 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:32.6.0')
 
     implementation 'com.google.firebase:firebase-auth'
+
+    implementation 'com.google.firebase:firebase-firestore-ktx'
+
+    def work_version = "2.8.0" // Or latest
+    implementation("androidx.work:work-runtime-ktx:$work_version")
+
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    // When using Kotlin.
+    kapt("androidx.hilt:hilt-compiler:1.2.0")
+
+    //Mock
+    testImplementation "org.mockito:mockito-core:5.11.0"
+    testImplementation "io.mockk:mockk:1.13.10"
+
+    testImplementation("com.google.dagger:hilt-android-testing:2.44")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.44")
+
 
     //Google play services
     implementation("com.google.android.gms:play-services-auth:20.7.0")

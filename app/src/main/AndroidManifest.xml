@@ -17,12 +17,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Taskify"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Taskify"
             android:windowSoftInputMode="adjustResize">
+
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -33,6 +36,18 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <!-- If you are using androidx.startup to initialize other components -->
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <receiver
             android:name=".ui.alarm.TaskReceiver"

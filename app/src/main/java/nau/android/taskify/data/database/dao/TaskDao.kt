@@ -42,6 +42,9 @@ interface TaskDao {
     @Query("select * from task where not task_is_completed")
     fun getAllTasks(): Flow<List<Task>>
 
+    @Query("select * from task")
+    fun getAllTasksForTesting(): List<Task>
+
     @Query("select * from task where task_category_id=:categoryId and task_is_completed")
     fun getCategoryCompletedTasks(categoryId: Long): Flow<List<Task>>
 

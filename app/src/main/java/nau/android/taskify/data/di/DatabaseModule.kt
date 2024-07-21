@@ -2,6 +2,7 @@ package nau.android.taskify.data.di
 
 import android.content.Context
 import androidx.room.Room
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,6 +21,12 @@ object DatabaseModule {
     fun provideTaskDatabase(@ApplicationContext context: Context): TaskDatabase {
         return Room.databaseBuilder(context, TaskDatabase::class.java, "tasks-database")
             .fallbackToDestructiveMigration().build()
+    }
+
+    @Singleton
+    @Provides
+    fun provideFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
     }
 
 }

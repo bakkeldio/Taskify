@@ -60,7 +60,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import dagger.hilt.android.AndroidEntryPoint
+import nau.android.taskify.data.repository.TaskSyncWorker
 import nau.android.taskify.ui.DestinationNavArgs
 import nau.android.taskify.googleAuth.GoogleAuthClient
 import nau.android.taskify.ui.LoginDestination
@@ -83,6 +89,7 @@ import nau.android.taskify.ui.tasksList.AllTasksList
 import nau.android.taskify.ui.tasksList.CategoryTasksList
 import nau.android.taskify.ui.tasksList.QuadrantTasksList
 import nau.android.taskify.ui.theme.TaskifyTheme
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 val LocalSnackbarHost = compositionLocalOf {
@@ -101,6 +108,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+
+        val taskSyncRequest = PeriodicWorkRequestBuilder<TaskSyncWorker>(
+            1, TimeUnit.DAYS // Sync every day
+        )
+            .setConstraints(constraints)
+            .build()
+
+
+        WorkManager.getInstance(applicationContext)
+            .enqueueUniquePeriodicWork("taskSync", ExistingPeriodicWorkPolicy.KEEP, taskSyncRequest)
 
         setContent {
             TaskifyTheme {
@@ -144,7 +165,7 @@ fun MainPage(
         SnackbarHostState()
     }
 
-    CompositionLocalProvider(LocalSnackbarHost provides snackbarHostState) {
+    //CompositionLocalProvider(LocalSnackbarHost provides snackbarHostState) {
 
         Scaffold(bottomBar = {
             AnimatedVisibility(visible = showBottomNavigation) {
@@ -280,7 +301,7 @@ fun MainPage(
                 }
 
             }
-        }
+        //}
     }
 }
 
